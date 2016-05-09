@@ -1,9 +1,9 @@
-﻿module PongGame
+﻿module PongClient
 
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
 
-type Game1 () as x =
+type PongClient () as x =
     inherit Game()
 
     do x.Content.RootDirectory <- "Content"
