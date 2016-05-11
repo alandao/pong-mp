@@ -2,6 +2,7 @@
 
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
+open Microsoft.Xna.Framework.Input
 
 type PongClient () as x =
     inherit Game()
@@ -12,14 +13,20 @@ type PongClient () as x =
 
     override x.Initialize() =
         do spriteBatch
-        do base.Initialize()
+        base.Initialize()
 
     override x.LoadContent() = 
         ()
-
     override x.Update (gameTime) =
-        ()
+        if (Keyboard.GetState().IsKeyDown(Keys.Escape)) then
+            x.Exit();
+
+        base.Update(gameTime)
 
     override x.Draw (gameTime) =
-        do x.GraphicsDevice.Clear Color.CornflowerBlue
-        ()
+        x.GraphicsDevice.Clear Color.CornflowerBlue
+
+        base.Draw(gameTime)
+
+    override x.UnloadContent() =
+        base.UnloadContent()
