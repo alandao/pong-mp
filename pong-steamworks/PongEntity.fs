@@ -32,3 +32,15 @@ type Entity =
         with get () = match this.PhysicsType with
                         | Dynamic(s) -> this.Position + s
                         | _-> this.Position
+
+let CreateEntity (content:ContentManager) (textureName, entityType, position, size, isStatic) =
+    let tex =   if not (System.String.IsNullOrEmpty textureName) then
+                    Some(content.Load textureName)
+                else
+                    None
+    let pt =    if isStatic then
+                    Static
+                else
+                    Dynamic(Vector2(0.f,0.f))
+    { EntityType = entityType; Position = position; Size = size; Texture = tex; PhysicsType = pt; }
+
