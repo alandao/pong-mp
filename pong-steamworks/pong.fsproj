@@ -8,11 +8,11 @@
     <ProjectGuid>09bf980e-6f2e-4bda-b038-cc3909b5565f</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>pong_steamworks</RootNamespace>
-    <AssemblyName>pong_steamworks</AssemblyName>
+    <AssemblyName>pong-lidgren-mp</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <TargetFSharpCoreVersion>4.4.0.0</TargetFSharpCoreVersion>
-    <Name>pong-steamworks</Name>
+    <Name>pong</Name>
     <RunPostBuildEvent>OnBuildSuccess</RunPostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -61,15 +61,6 @@
     <Compile Include="Program.fs" />
     <None Include="App.config" />
     <Content Include="packages.config" />
-    <None Include="CSteamworks.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="steam_api64.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <Content Include="steam_appid.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <None Include="obstacle.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -93,9 +84,6 @@
     <Reference Include="OpenTK">
       <HintPath>..\packages\MonoGame.Framework.DesktopGL.3.5.1.1679\lib\net40\OpenTK.dll</HintPath>
       <Private>True</Private>
-    </Reference>
-    <Reference Include="Steamworks.NET">
-      <HintPath>..\..\..\..\..\Documents\Visual Studio 2015\Projects\pong-steamworks\pong-steamworks\lib\Steamworks.NET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
