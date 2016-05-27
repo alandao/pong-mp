@@ -57,8 +57,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="PongEntity.fs" />
-    <Compile Include="PongClient.fs" />
-    <Compile Include="Program.fs" />
+    <Compile Include="PongApp.fs" />
     <None Include="App.config" />
     <Content Include="packages.config" />
     <None Include="obstacle.png">
@@ -69,6 +68,10 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="Lidgren.Network">
+      <HintPath>..\packages\Lidgren.Network.1.0.2\lib\net451\Lidgren.Network.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="MonoGame.Framework">
       <HintPath>..\packages\MonoGame.Framework.DesktopGL.3.5.1.1679\lib\net40\MonoGame.Framework.dll</HintPath>
       <Private>True</Private>

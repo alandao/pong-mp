@@ -1,9 +1,24 @@
-﻿module PongClient
+﻿module PongApp
 
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
 open PongEntity
+open Lidgren.Network
+
+let startServer port =
+    let config = new NetPeerConfiguration("pong")
+    config.Port <- port
+    let server = new NetServer(config)
+    server.Start()
+    server
+
+let startClient (ip:string) port = 
+    let config = new NetPeerConfiguration("pong")
+    let client = new NetClient(config)
+    client.Start()
+    ignore(client.Connect(ip, port))
+    client
 
 type PongClient () as x =
     inherit Game()
@@ -11,6 +26,8 @@ type PongClient () as x =
     do x.Content.RootDirectory <- ""
     let graphics = new GraphicsDeviceManager(x)
     let mutable spriteBatch = Unchecked.defaultof<SpriteBatch>
+    let mutable server = Unchecked.defaultof<NetServer>
+    let mutable client = Unchecked.defaultof<NetClient>
 
     let CreateEntity' = CreateEntity x.Content
     let DrawEntity (sb:SpriteBatch) (entity:Entity) = 
@@ -18,13 +35,16 @@ type PongClient () as x =
             do sb.Draw(entity.Texture.Value, entity.Position, Color.White)
         ()
 
-    let WorldObjects = lazy ([("player.png", Player(Nothing), Vector2(10.f,28.f), Vector2(32.f,32.f), false);
-                              ("obstacle.png", Obstacle, Vector2(10.f,60.f), Vector2(32.f,32.f), true);
+    let WorldObjects = lazy ([("obstacle.png", Obstacle, Vector2(10.f,60.f), Vector2(32.f,32.f), true);
                               ("", Obstacle, Vector2(42.f,60.f), Vector2(32.f,32.f), true);]
                              |> List.map CreateEntity')
 
     override x.Initialize() =
-        do spriteBatch <- new SpriteBatch(x.GraphicsDevice)
+        spriteBatch <- new SpriteBatch(x.GraphicsDevice)
+
+        server <- startServer 12345
+        client <- startClient "localhost" 12345
+
         base.Initialize()
 
     override x.LoadContent() = 
@@ -33,6 +53,10 @@ type PongClient () as x =
     override x.Update (gameTime) =
         if (Keyboard.GetState().IsKeyDown(Keys.Escape)) then
             x.Exit();
+        //
+        
+            
+            
 
     override x.Draw (gameTime) =
         x.GraphicsDevice.Clear Color.CornflowerBlue
@@ -43,3 +67,14 @@ type PongClient () as x =
 
     override x.UnloadContent() =
         ()
+
+[<EntryPoint>]
+let main argv =
+
+    //initialize client
+    use client = new PongClient()
+    //statement below will block
+    client.Run()
+
+    printfn "Shutting Down"
+    0 // return an integer exit code

@@ -8,13 +8,9 @@ type PhysicsType =
     | Static
     | Dynamic of Vector2
 
-type PlayerState =
-    | Nothing
-    | Jumping
 
 type EntityType =
-    | Player of PlayerState
-    | Obstacle
+    Obstacle
 
 type Entity =
     {
