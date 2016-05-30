@@ -4,6 +4,7 @@ open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
 open PongEntity
+open ECS
 open Lidgren.Network
 
 let startServer port =
@@ -35,9 +36,10 @@ type PongClient () as x =
             do sb.Draw(entity.Texture.Value, entity.Position, Color.White)
         ()
 
-    let WorldObjects = lazy ([("obstacle.png", Obstacle, Vector2(10.f,60.f), Vector2(32.f,32.f), true);
-                              ("", Obstacle, Vector2(42.f,60.f), Vector2(32.f,32.f), true);]
+    let WorldObjects = lazy ([("obstacle.png", Obstacle, Vector2(10.f,60.f), Vector2(32.f,32.f), true);]
                              |> List.map CreateEntity')
+
+    let mutable world = defaultWorld
 
     override x.Initialize() =
         spriteBatch <- new SpriteBatch(x.GraphicsDevice)
@@ -48,8 +50,11 @@ type PongClient () as x =
         base.Initialize()
 
     override x.LoadContent() = 
-        do WorldObjects.Force () |> ignore
-
+        //do WorldObjects.Force () |> ignore
+        world <- world |>
+            createEntity "obstacle" |>
+            addPosition "obstacle" (Vector2(10.f, 60.f)) |>
+            addAppearance "obstacle" "obstacle.png" x.Content
     override x.Update (gameTime) =
         if (Keyboard.GetState().IsKeyDown(Keys.Escape)) then
             x.Exit();
@@ -62,7 +67,8 @@ type PongClient () as x =
         x.GraphicsDevice.Clear Color.CornflowerBlue
         let DrawEntity' = DrawEntity spriteBatch
         do spriteBatch.Begin ()
-        WorldObjects.Value |> List.iter DrawEntity'
+        //WorldObjects.Value |> List.iter DrawEntity'
+        runAppearance spriteBatch world
         do spriteBatch.End ()
 
     override x.UnloadContent() =
