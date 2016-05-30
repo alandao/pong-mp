@@ -31,8 +31,16 @@ let defaultWorld = {
 let createEntity id world =
     {world with entities = Set.add id world.entities}
 
-let destroyEntity id world =
-    {world with entities = Set.remove id world.entities}
+//fix memory leak here once components are done
+let destroyEntity id {  entities = entities;
+                        position = position;
+                        velocity = velocity;
+                        appearance = appearance; } =
+
+    {   entities = Set.remove id entities;
+        position = Map.remove id position;
+        velocity = Map.remove id velocity;
+        appearance = Map.remove id appearance; }
 
 
 let addPosition id pos world  =
@@ -55,17 +63,14 @@ let getAppearance id world = Map.tryFind id world.appearance
 //updates entities with position and velocity
 let runMovement dt world =
     let advance (pos:Position) vel = ( pos + (dt * vel) : Position)
-    let maybe = new FSharpx.Option.MaybeBuilder()
-    let nextPosition id = maybe 
-                            {
-                                let! pos = getPosition id world
-                                let! vel = getVelocity id world
-                                return advance pos vel
-                            }
-    let updatePos id pos =  if Set.contains id world.entities && Option.isSome (nextPosition id) then
-                                Option.get (nextPosition id)
-                            else
-                                pos
+    let updatePos id pos =  
+        let position = getPosition id world
+        let velocity = getVelocity id world
+
+        if Set.contains id world.entities && Option.isSome position && Option.isSome velocity then
+            advance (Option.get position) (Option.get velocity)
+        else
+            pos
 
     let nextPositions = Map.map updatePos world.position
                                                      
