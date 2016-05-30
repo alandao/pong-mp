@@ -31,16 +31,17 @@ let defaultWorld = {
 let createEntity id world =
     {world with entities = Set.add id world.entities}
 
-//fix memory leak here once components are done
-let destroyEntity id {  entities = entities;
+let destroyEntity id world =
+    let {  entities = entities;
                         position = position;
                         velocity = velocity;
-                        appearance = appearance; } =
-
-    {   entities = Set.remove id entities;
+                        appearance = appearance; } = world
+    {   
+        entities = Set.remove id entities;
         position = Map.remove id position;
         velocity = Map.remove id velocity;
-        appearance = Map.remove id appearance; }
+        appearance = Map.remove id appearance; 
+    }
 
 
 let addPosition id pos world  =
@@ -61,8 +62,8 @@ let getAppearance id world = Map.tryFind id world.appearance
 //systems
 
 //updates entities with position and velocity
-let runMovement dt world =
-    let advance (pos:Position) vel = ( pos + (dt * vel) : Position)
+let runMovement (dt:float) world =
+    let advance (pos:Position) (vel:Vector2) = ( pos + (float32 dt * vel) : Position)
     let updatePos id pos =  
         let position = getPosition id world
         let velocity = getVelocity id world

@@ -24,22 +24,21 @@ let startClient (ip:string) port =
 type PongClient () as x =
     inherit Game()
 
-    do x.Content.RootDirectory <- ""
+
+
+    do  x.Content.RootDirectory <- ""
+
+
     let graphics = new GraphicsDeviceManager(x)
     let mutable spriteBatch = Unchecked.defaultof<SpriteBatch>
+
     let mutable server = Unchecked.defaultof<NetServer>
     let mutable client = Unchecked.defaultof<NetClient>
 
-    let CreateEntity' = CreateEntity x.Content
-    let DrawEntity (sb:SpriteBatch) (entity:Entity) = 
-        if entity.Texture.IsSome then
-            do sb.Draw(entity.Texture.Value, entity.Position, Color.White)
-        ()
-
-    let WorldObjects = lazy ([("obstacle.png", Obstacle, Vector2(10.f,60.f), Vector2(32.f,32.f), true);]
-                             |> List.map CreateEntity')
-
     let mutable world = defaultWorld
+    
+    //debug stuff
+    let mutable dummyTexture = Unchecked.defaultof<Texture2D>
 
     override x.Initialize() =
         spriteBatch <- new SpriteBatch(x.GraphicsDevice)
@@ -49,26 +48,41 @@ type PongClient () as x =
 
         base.Initialize()
 
-    override x.LoadContent() = 
-        //do WorldObjects.Force () |> ignore
+    override x.LoadContent() =
+        dummyTexture <- new Texture2D(x.GraphicsDevice, 1, 1)
+        dummyTexture.SetData([| Color.White |])
         world <- world |>
             createEntity "obstacle" |>
             addPosition "obstacle" (Vector2(10.f, 60.f)) |>
-            addAppearance "obstacle" "obstacle.png" x.Content
+            addVelocity "obstacle" (Vector2(10.f, 0.f)) |>
+            addAppearance "obstacle" "obstacle.png" x.Content |>
+            createEntity "obstacle1" |>
+            addPosition "obstacle1" (Vector2(10.f, 100.f)) |>
+            addVelocity "obstacle1" (Vector2(5.f, 0.f)) |>
+            addAppearance "obstacle1" "obstacle.png" x.Content |>
+            createEntity "obstacle2" |>
+            addPosition "obstacle2" (Vector2(10.f, 100.f)) |>
+            addVelocity "obstacle2" (Vector2(2.5f, 0.f)) |>
+            addAppearance "obstacle2" "obstacle.png" x.Content
+
     override x.Update (gameTime) =
         if (Keyboard.GetState().IsKeyDown(Keys.Escape)) then
             x.Exit();
-        //
-        
-            
+                
+        world <-  runMovement gameTime.ElapsedGameTime.TotalSeconds world
             
 
     override x.Draw (gameTime) =
         x.GraphicsDevice.Clear Color.CornflowerBlue
-        let DrawEntity' = DrawEntity spriteBatch
+
         do spriteBatch.Begin ()
-        //WorldObjects.Value |> List.iter DrawEntity'
         runAppearance spriteBatch world
+
+        //debug top left square which turns orange if game is running less than 60fps
+        spriteBatch.Draw(dummyTexture, new Rectangle(0, 0, 20, 20), Color.Green)
+        if gameTime.IsRunningSlowly then
+            spriteBatch.Draw(dummyTexture, new Rectangle(0, 0, 20, 20), Color.OrangeRed)
+
         do spriteBatch.End ()
 
     override x.UnloadContent() =
