@@ -4,7 +4,6 @@ open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
 open Lidgren.Network
-
 open System.Collections.Generic
 
 let startServer port =
@@ -57,7 +56,7 @@ type PongClient () as x =
     let mutable client = Unchecked.defaultof<NetClient>
     let mutable isHosting = true
 
-    let mutable serverWorld = Server.defaultWorld
+    let serverWorld = Server.defaultWorld
     let mutable clientWorld = Client.defaultWorld
 
     //debug stuff
@@ -66,16 +65,16 @@ type PongClient () as x =
     override x.Initialize() =
         spriteBatch <- new SpriteBatch(x.GraphicsDevice)
 
-        serverWorld <- serverWorld |>
-            Server.createEntity "obstacle" |>
-            Server.addPosition "obstacle" (Vector2(10.f, 60.f)) |>
-            Server.addVelocity "obstacle" (Vector2(10.f, 0.f)) |>
-            Server.createEntity "obstacle1" |>
-            Server.addPosition "obstacle1" (Vector2(10.f, 100.f)) |>
-            Server.addVelocity "obstacle1" (Vector2(5.f, 0.f)) |>
-            Server.createEntity "obstacle2" |>
-            Server.addPosition "obstacle2" (Vector2(10.f, 140.f)) |>
-            Server.addVelocity "obstacle2" (Vector2(2.5f, 0.f))
+        
+        Server.createEntity "obstacle" serverWorld |> ignore
+        Server.addPosition "obstacle" (Vector2(10.f, 60.f)) serverWorld |> ignore
+        Server.addVelocity "obstacle" (Vector2(10.f, 0.f)) serverWorld |> ignore
+        Server.createEntity "obstacle1" serverWorld |> ignore
+        Server.addPosition "obstacle1" (Vector2(10.f, 100.f)) serverWorld |> ignore
+        Server.addVelocity "obstacle1" (Vector2(5.f, 0.f)) serverWorld |> ignore
+        Server.createEntity "obstacle2" serverWorld |> ignore
+        Server.addPosition "obstacle2" (Vector2(10.f, 140.f)) serverWorld |> ignore
+        Server.addVelocity "obstacle2" (Vector2(2.5f, 0.f)) serverWorld |> ignore
 
 
         server <- startServer 12345
@@ -90,6 +89,7 @@ type PongClient () as x =
             //addAppearance "obstacle1" "obstacle.png" x.Content |>
 
     override x.Update (gameTime) =
+        let dt = gameTime.ElapsedGameTime.TotalSeconds
         if isHosting then
             //update server
 
@@ -99,7 +99,7 @@ type PongClient () as x =
             //filter for inputs in appropriate context
             //input' <- filter inContext rawInput
 
-            serverWorld <-  Server.runMovement gameTime.ElapsedGameTime.TotalSeconds serverWorld
+            Server.runMovement dt serverWorld
             
             //send world to clients.
 
@@ -110,8 +110,8 @@ type PongClient () as x =
 
         if (Keyboard.GetState().IsKeyDown(Keys.Escape)) then
             x.Exit();
-        let playerInputs = getClientInputs
-
+//        let playerInputs = getClientInputs
+        
         //process player movement clientside
         //poll for new updates from server as fast as possible.
             
@@ -120,7 +120,7 @@ type PongClient () as x =
         x.GraphicsDevice.Clear Color.CornflowerBlue
 
         do spriteBatch.Begin ()
-        runAppearance spriteBatch world
+        Client.runAppearance spriteBatch world
 
         //debug top left square which turns orange if game is running less than 60fps
         spriteBatch.Draw(dummyTexture, new Rectangle(0, 0, 20, 20), Color.Green)

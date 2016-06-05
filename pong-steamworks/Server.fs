@@ -1,60 +1,48 @@
 ﻿module Server
 
 open Microsoft.Xna.Framework
+open System.Collections.Generic
 
+open HelperFunctions
 open SharedServerClient
 
 
 type World = {
-    entities : Set<string>;
+    entities : HashSet<string>;
 
-    position: Map<string, Position>;
-    velocity: Map<string, Velocity>;
+    position: Dictionary<string, Position>;
+    velocity: Dictionary<string, Velocity>;
     }
 
 let defaultWorld = {
-    entities = Set.empty;
-    position = Map.empty;
-    velocity = Map.empty;
+    entities = HashSet<string>();
+    position = Dictionary<string, Position>();
+    velocity = Dictionary<string, Velocity>();
     }
 
-let createEntity id world =
-    {world with entities = Set.add id world.entities}
+let createEntity id world = world.entities.Add(id)
 
-let destroyEntity id world =
-    let ({   
-            entities = entities;
-            position = position;
-            velocity = velocity; 
-        }:World) = world
-    {   
-        entities = Set.remove id entities;
-        position = Map.remove id position;
-        velocity = Map.remove id velocity;
-    }
+let destroyEntity id world = 
+    world.position.Remove(id) |> ignore
+    world.velocity.Remove(id) |> ignore
+    world.entities.Remove(id)
 
-let addPosition id pos world  =
-    {world with position = Map.add id pos world.position}
+let addPosition id pos world = world.position.Add(id, pos)
+    
 
-let addVelocity id vel world  =
-    {world with velocity = Map.add id vel world.velocity}
-
+let addVelocity id vel world = world.velocity.Add(id, vel)
 
 //  SYSTEMS
 
 //updates entities with position and velocity
 let runMovement (dt:float) world =
     let advance (pos:Position) (vel:Vector2) = ( pos + (float32 dt * vel) : Position)
-    let updatePos id pos =  
-        let position = Map.tryFind id world.position
-        let velocity = Map.tryFind id world.velocity
 
-        if Set.contains id world.entities && Option.isSome position && Option.isSome velocity then
-            advance (Option.get position) (Option.get velocity)
-        else
-            pos
+    for entry in world.position do
+        let id = entry.Key
+        let position = entry.Value
+        let velocity = tryFind id world.velocity
 
-    let nextPositions = Map.map updatePos world.position
-                                                     
-    {world with position = nextPositions}
+        if Option.isSome velocity then
+            world.position.[id] <- advance position (Option.get velocity) 
 

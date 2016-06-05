@@ -4,7 +4,9 @@ open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Content
 open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
+open System.Collections.Generic
 
+open HelperFunctions
 open SharedServerClient
 
 //  COMPONENTS
@@ -12,38 +14,39 @@ type Appearance = { texture : Texture2D; size : Vector2 }
 
 
 type World = {
-    entities : Set<string>;
+    entities : HashSet<string>;
 
-    position: Map<string, Position>;
-    velocity: Map<string, Velocity>;
-    appearance: Map<string, Appearance>;
+    position: Dictionary<string, Position>;
+    velocity: Dictionary<string, Velocity>;
+    appearance: Dictionary<string, Appearance>;
     }
 
 let defaultWorld = {
-    entities = Set.empty;
-    position = Map.empty;
-    velocity = Map.empty;
-    appearance = Map.empty;
+    entities = HashSet<string>();
+    position = Dictionary<string, Position>();
+    velocity = Dictionary<string, Velocity>();
+    appearance = Dictionary<string, Appearance>();
     }
 
 
-let addAppearance id textureName (contentManager:ContentManager) (world:World)  =
-    {world with appearance = Map.add id {texture = contentManager.Load<Texture2D> textureName; 
-                                         size = Vector2(1.f, 1.f)} world.appearance}
+let addAppearance id textureName (contentManager:ContentManager) (world:World)  = 
+    let appr =  {    
+                    texture = contentManager.Load<Texture2D> textureName; 
+                    size = Vector2(1.f, 1.f)
+                }
+    world.appearance.Add(id, appr)
 
 //  SYSTEMS
 
 //draw entities with position and appearance
 let runAppearance (sb:SpriteBatch) world =
-    let draw id =
-        let position = Map.tryFind id world.position
-        let appearance = Map.tryFind id world.appearance
-        if Set.contains id world.entities && Option.isSome position && Option.isSome appearance then
-            let position' = Option.get position
-            let appearance' = Option.get appearance
-            sb.Draw(appearance'.texture, position', Color.White)
-        ()
-    Map.iter (fun id _ -> draw id) world.appearance
+    for entry in world.appearance do
+        let id = entry.Key
+        let appearance = entry.Value
+        let position = tryFind id world.position
+
+        if Option.isSome position then
+            sb.Draw(appearance.texture, Option.get position, Color.White)
 
 
 //  OTHER
