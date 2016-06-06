@@ -13,6 +13,37 @@ let startServer port =
     server.Start()
     server
 
+let ServerRunFrame serverWorld dt (serverSocket:NetServer) =
+
+    //process messages from clients
+    let mutable message = serverSocket.ReadMessage()
+    while message <> null do
+        match message.MessageType with
+        | NetIncomingMessageType.Data ->
+            let data = message.ReadString()
+            printf "Server: message received: %s" data
+        
+        | NetIncomingMessageType.StatusChanged ->
+            //A client connected or disconnected.
+            ()
+        | NetIncomingMessageType.DebugMessage -> 
+            ()
+        | _ ->
+            eprintf "unhandled message with type: %s" (message.MessageType.ToString())
+            ()
+        message <- serverSocket.ReadMessage()
+
+    //retrieve inputs from clients
+    //rawInput <- getInputfromClients
+
+    //filter for inputs in appropriate context
+    //input' <- filter inContext rawInput
+
+    Server.runMovement dt serverWorld
+            
+    //send world to clients.
+    
+
 let sendMessageToClients (clients: NetConnection list) (serverSocket:NetServer) =
     let message = serverSocket.CreateMessage()
     let mutable (clients' : List<NetConnection>) = new List<NetConnection>()
@@ -28,20 +59,20 @@ let startClient (ip:string) port =
     client
 
 let updateWorldFromServer (world:Client.World) (clientSocket:NetClient) =
-    let message = clientSocket.ReadMessage()
+    let mutable message = clientSocket.ReadMessage()
 
-    if message == null then world else
-        
-    match message.MessageType with
-    | NetIncomingMessageType.Data ->
-        let data = message.ReadString()
-        printf "message received: %s" data
-        world
-    | NetIncomingMessageType.StatusChanged -> world
-    | NetIncomingMessageType.DebugMessage -> world
-    | _ ->
-        eprintf "unhandled message with type: %s" (message.MessageType.ToString())
-        world
+    while message <> null do
+        match message.MessageType with
+        | NetIncomingMessageType.Data ->
+            let data = message.ReadString()
+            printf "message received: %s" data
+
+        | NetIncomingMessageType.StatusChanged -> ()
+        | NetIncomingMessageType.DebugMessage -> ()
+        | _ ->
+            eprintf "unhandled message with type: %s" (message.MessageType.ToString())
+            ()
+        message <- clientSocket.ReadMessage()
 
 type PongClient () as x =
     inherit Game()
@@ -52,12 +83,12 @@ type PongClient () as x =
     let graphics = new GraphicsDeviceManager(x)
     let mutable spriteBatch = Unchecked.defaultof<SpriteBatch>
 
-    let mutable server = Unchecked.defaultof<NetServer>
-    let mutable client = Unchecked.defaultof<NetClient>
+    let mutable serverSocket = Unchecked.defaultof<NetServer>
+    let mutable clientSocket = Unchecked.defaultof<NetClient>
     let mutable isHosting = true
 
     let serverWorld = Server.defaultWorld
-    let mutable clientWorld = Client.defaultWorld
+    let clientWorld = Client.defaultWorld
 
     //debug stuff
     let mutable dummyTexture = Unchecked.defaultof<Texture2D>
@@ -66,43 +97,28 @@ type PongClient () as x =
         spriteBatch <- new SpriteBatch(x.GraphicsDevice)
 
         
-        Server.createEntity "obstacle" serverWorld |> ignore
-        Server.addPosition "obstacle" (Vector2(10.f, 60.f)) serverWorld |> ignore
-        Server.addVelocity "obstacle" (Vector2(10.f, 0.f)) serverWorld |> ignore
-        Server.createEntity "obstacle1" serverWorld |> ignore
-        Server.addPosition "obstacle1" (Vector2(10.f, 100.f)) serverWorld |> ignore
-        Server.addVelocity "obstacle1" (Vector2(5.f, 0.f)) serverWorld |> ignore
-        Server.createEntity "obstacle2" serverWorld |> ignore
-        Server.addPosition "obstacle2" (Vector2(10.f, 140.f)) serverWorld |> ignore
-        Server.addVelocity "obstacle2" (Vector2(2.5f, 0.f)) serverWorld |> ignore
+        serverWorld.entities.Add("obstacle") |> ignore
+        serverWorld.position.Add("obstacle", (Vector2(10.f, 60.f))) |> ignore
+        serverWorld.velocity.Add("obstacle", (Vector2(10.f, 0.f))) |> ignore
+        serverWorld.entities.Add("obstacle1") |> ignore
+        serverWorld.position.Add("obstacle1", (Vector2(10.f, 100.f))) |> ignore
+        serverWorld.velocity.Add("obstacle1", (Vector2(5.f, 0.f))) |> ignore
 
+        dummyTexture <- new Texture2D(x.GraphicsDevice, 1, 1)
+        dummyTexture.SetData([| Color.White |])
 
-        server <- startServer 12345
-        client <- startClient "localhost" 12345
+        serverSocket <- startServer 12345
+        clientSocket <- startClient "localhost" 12345
 
         base.Initialize()
 
     override x.LoadContent() =
-        dummyTexture <- new Texture2D(x.GraphicsDevice, 1, 1)
-        dummyTexture.SetData([| Color.White |])
-
-            //addAppearance "obstacle1" "obstacle.png" x.Content |>
+        ()
 
     override x.Update (gameTime) =
         let dt = gameTime.ElapsedGameTime.TotalSeconds
         if isHosting then
-            //update server
-
-            //retrieve inputs from clients
-            //rawInput <- getInputfromClients
-
-            //filter for inputs in appropriate context
-            //input' <- filter inContext rawInput
-
-            Server.runMovement dt serverWorld
-            
-            //send world to clients.
-
+            ServerRunFrame serverWorld dt serverSocket
 
         //clientside
 
@@ -120,7 +136,7 @@ type PongClient () as x =
         x.GraphicsDevice.Clear Color.CornflowerBlue
 
         do spriteBatch.Begin ()
-        Client.runAppearance spriteBatch world
+        Client.runAppearance spriteBatch clientWorld
 
         //debug top left square which turns orange if game is running less than 60fps
         spriteBatch.Draw(dummyTexture, new Rectangle(0, 0, 20, 20), Color.Green)

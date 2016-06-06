@@ -20,17 +20,10 @@ let defaultWorld = {
     velocity = Dictionary<string, Velocity>();
     }
 
-let createEntity id world = world.entities.Add(id)
-
 let destroyEntity id world = 
     world.position.Remove(id) |> ignore
     world.velocity.Remove(id) |> ignore
-    world.entities.Remove(id)
-
-let addPosition id pos world = world.position.Add(id, pos)
-    
-
-let addVelocity id vel world = world.velocity.Add(id, vel)
+    world.entities.Remove(id) |> ignore
 
 //  SYSTEMS
 

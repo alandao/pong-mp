@@ -28,6 +28,10 @@ let defaultWorld = {
     appearance = Dictionary<string, Appearance>();
     }
 
+let destroyEntity id world = 
+    world.position.Remove(id) |> ignore
+    world.velocity.Remove(id) |> ignore
+    world.entities.Remove(id)
 
 let addAppearance id textureName (contentManager:ContentManager) (world:World)  = 
     let appr =  {    
