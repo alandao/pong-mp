@@ -15,9 +15,11 @@ let StartServer port =
 
 let ServerSendMessageToClients (clients: NetConnection list) (serverSocket:NetServer) =
     let message = serverSocket.CreateMessage()
+    if List.isEmpty clients then
+        () // exit earlier since we don't need to send to any client.
     let mutable (clients' : List<NetConnection>) = new List<NetConnection>()
     List.iter (fun x -> clients'.Add(x)) clients
-    message.Write("Server says hi!")
+    message.Write("Server reporting in!")
     serverSocket.SendMessage(message, clients' , NetDeliveryMethod.Unreliable, 0)
 
 let ServerRunFrame (clients : NetConnection list) serverWorld dt (serverSocket:NetServer) =
@@ -29,7 +31,7 @@ let ServerRunFrame (clients : NetConnection list) serverWorld dt (serverSocket:N
         match message.MessageType with
         | NetIncomingMessageType.Data ->
             let data = message.ReadString()
-            printf "Server: message '%s' received" data
+            printfn "Server: message '%s' received" data
         
         | NetIncomingMessageType.StatusChanged ->
             //A client connected or disconnected.
@@ -37,18 +39,18 @@ let ServerRunFrame (clients : NetConnection list) serverWorld dt (serverSocket:N
             | NetConnectionStatus.Connected ->
                 //add client to connections list
                 clients' <- message.SenderConnection::clients'
-                printf "Server: Client from %s has connected." (message.SenderEndPoint.ToString())
+                printfn "Server: Client from %s has connected." (message.SenderEndPoint.ToString())
             | NetConnectionStatus.Disconnected ->
                 //remove client from connections list
                 clients' <- List.filter (fun x -> x <> message.SenderConnection) clients'
-                printf "Server: Client from %s has disconnected." (message.SenderEndPoint.ToString())
+                printfn "Server: Client from %s has disconnected." (message.SenderEndPoint.ToString())
             | _ ->
-                printf "Server: Client from %s has an unhandled status." (message.SenderEndPoint.ToString())
+                printfn "Server: Client from %s has an unhandled status." (message.SenderEndPoint.ToString())
            
         | NetIncomingMessageType.DebugMessage -> 
             ()
         | _ ->
-            eprintf "Server: Unhandled message with type: %s" (message.MessageType.ToString())
+            eprintfn "Server: Unhandled message with type: %s" (message.MessageType.ToString())
             ()
         message <- serverSocket.ReadMessage()
 
@@ -62,6 +64,8 @@ let ServerRunFrame (clients : NetConnection list) serverWorld dt (serverSocket:N
             
     //send world to clients.
     ServerSendMessageToClients clients' serverSocket
+
+    clients'
 
 let StartClient (ip:string) port = 
     let config = new NetPeerConfiguration("pong")
@@ -77,12 +81,12 @@ let ClientRunFrame (world:Client.World) (clientSocket:NetClient) =
         match message.MessageType with
         | NetIncomingMessageType.Data ->
             let data = message.ReadString()
-            printf "Client: Message received: %s" data
+            printfn "Client: Message received: %s" data
 
         | NetIncomingMessageType.StatusChanged -> ()
         | NetIncomingMessageType.DebugMessage -> ()
         | _ ->
-            eprintf "Client: Unhandled message with type: %s" (message.MessageType.ToString())
+            eprintfn "Client: Unhandled message with type: %s" (message.MessageType.ToString())
             ()
         message <- clientSocket.ReadMessage()
 
@@ -134,7 +138,7 @@ type PongClient () as x =
         let dt = gameTime.ElapsedGameTime.TotalSeconds
         if isHosting then
             //serverside
-            ServerRunFrame clientsConnected serverWorld dt serverSocket
+            clientsConnected <- ServerRunFrame clientsConnected serverWorld dt serverSocket
 
         //clientside
 
