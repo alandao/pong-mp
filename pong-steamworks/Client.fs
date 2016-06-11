@@ -5,6 +5,7 @@ open Microsoft.Xna.Framework.Content
 open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
 open System.Collections.Generic
+open Lidgren.Network
 
 open HelperFunctions
 open SharedServerClient
@@ -43,7 +44,7 @@ let addAppearance id textureName (contentManager:ContentManager) (world:World)  
 //  SYSTEMS
 
 //draw entities with position and appearance
-let runAppearance (sb:SpriteBatch) world =
+let RunAppearance (sb:SpriteBatch) world =
     for entry in world.appearance do
         let id = entry.Key
         let appearance = entry.Value
@@ -62,3 +63,28 @@ let (getClientInputs : PlayerInput list) =
     if (Keyboard.GetState().IsKeyDown(Keys.S)) then
         inputs <- PaddleDown true :: inputs
     inputs
+
+
+//Public facing functions
+let Start (ip:string) port = 
+    let config = new NetPeerConfiguration("pong")
+    let client = new NetClient(config)
+    client.Start()
+    ignore(client.Connect(ip, port))
+    client
+
+let Update (world:World) (clientSocket:NetClient) =
+    let mutable message = clientSocket.ReadMessage()
+
+    while message <> null do
+        match message.MessageType with
+        | NetIncomingMessageType.Data ->
+            let data = message.ReadString()
+            printfn "Client: Message received: %s" data
+
+        | NetIncomingMessageType.StatusChanged -> ()
+        | NetIncomingMessageType.DebugMessage -> ()
+        | _ ->
+            eprintfn "Client: Unhandled message with type: %s" (message.MessageType.ToString())
+            ()
+        message <- clientSocket.ReadMessage()
