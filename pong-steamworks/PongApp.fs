@@ -7,12 +7,6 @@ open Lidgren.Network
 open System.Collections.Generic
 
 
-
-
-
-
-
-
 type PongClient () as x =
     inherit Game()
 
@@ -21,19 +15,18 @@ type PongClient () as x =
 
     let graphics = new GraphicsDeviceManager(x)
     let mutable spriteBatch = Unchecked.defaultof<SpriteBatch>
-
-    let mutable serverSocket = Unchecked.defaultof<NetServer>
-    let mutable clientsConnected = []
+    let mutable dummyTexture = Unchecked.defaultof<Texture2D>
 
     let mutable isHosting = true
+    let serverSocket = Server.Start 12345
+    let mutable clientsConnected = []
 
-    let mutable clientSocket = Unchecked.defaultof<NetClient>
+    let clientSocket = Client.Start "localhost" 12345
 
     let serverWorld = Server.defaultWorld
     let clientWorld = Client.defaultWorld
 
-    //debug stuff
-    let mutable dummyTexture = Unchecked.defaultof<Texture2D>
+    let textures = Dictionary<string, Texture2D>()
 
     override x.Initialize() =
         spriteBatch <- new SpriteBatch(x.GraphicsDevice)
@@ -42,25 +35,25 @@ type PongClient () as x =
         serverWorld.entities.Add("obstacle") |> ignore
         serverWorld.position.Add("obstacle", (Vector2(10.f, 60.f))) |> ignore
         serverWorld.velocity.Add("obstacle", (Vector2(10.f, 0.f))) |> ignore
+        serverWorld.appearance.Add("obstacle", "obstacle") |> ignore
         serverWorld.entities.Add("obstacle1") |> ignore
         serverWorld.position.Add("obstacle1", (Vector2(10.f, 100.f))) |> ignore
         serverWorld.velocity.Add("obstacle1", (Vector2(5.f, 0.f))) |> ignore
-
-        dummyTexture <- new Texture2D(x.GraphicsDevice, 1, 1)
-        dummyTexture.SetData([| Color.White |])
-
-        serverSocket <- Server.Start 12345
-        clientSocket <- Client.Start "localhost" 12345
+        serverWorld.appearance.Add("obstacle1", "obstacle") |> ignore
 
         base.Initialize()
 
     override x.LoadContent() =
-        ()
+        dummyTexture <- new Texture2D(x.GraphicsDevice, 1, 1)
+        dummyTexture.SetData([| Color.White |])
+
+        textures.Add("obstacle", x.Content.Load<Texture2D> "obstacle.png")
+        textures.Add("player", x.Content.Load<Texture2D> "player.png")
 
     override x.Update (gameTime) =
         let dt = gameTime.ElapsedGameTime.TotalSeconds
         if isHosting then
-            //serverside
+            //run serverside code
             clientsConnected <- Server.Update clientsConnected serverWorld dt serverSocket
 
         //clientside
@@ -80,7 +73,7 @@ type PongClient () as x =
         x.GraphicsDevice.Clear Color.CornflowerBlue
 
         do spriteBatch.Begin ()
-        Client.RunAppearance spriteBatch clientWorld
+        Client.RunAppearance textures spriteBatch clientWorld
 
         //debug top left square which turns orange if game is running less than 60fps
         spriteBatch.Draw(dummyTexture, new Rectangle(0, 0, 20, 20), Color.Green)

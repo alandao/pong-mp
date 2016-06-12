@@ -11,7 +11,7 @@ open HelperFunctions
 open SharedServerClient
 
 //  COMPONENTS
-type Appearance = { texture : Texture2D; size : Vector2 }
+type Appearance = { texture : string; size : Vector2 }
 
 
 type World = {
@@ -34,24 +34,26 @@ let destroyEntity id world =
     world.velocity.Remove(id) |> ignore
     world.entities.Remove(id)
 
-let addAppearance id textureName (contentManager:ContentManager) (world:World)  = 
+let addAppearance id textureName (world:World)  = 
     let appr =  {    
-                    texture = contentManager.Load<Texture2D> textureName; 
-                    size = Vector2(1.f, 1.f)
+                    texture = textureName; 
+                    size = Vector2(1.f, 1.f);
                 }
     world.appearance.Add(id, appr)
 
 //  SYSTEMS
 
 //draw entities with position and appearance
-let RunAppearance (sb:SpriteBatch) world =
+let RunAppearance textures (sb:SpriteBatch) world =
     for entry in world.appearance do
         let id = entry.Key
         let appearance = entry.Value
+
         let position = tryFind id world.position
+        let texture = tryFind appearance.texture textures
 
         if Option.isSome position then
-            sb.Draw(appearance.texture, Option.get position, Color.White)
+            sb.Draw(Option.get texture, Option.get position, Color.White)
 
 
 //  OTHER

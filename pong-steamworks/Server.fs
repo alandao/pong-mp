@@ -13,14 +13,14 @@ type World = {
    
     position: Dictionary<string, Position>;
     velocity: Dictionary<string, Velocity>;
-    texturePath: Dictionary<string, string>;
+    appearance: Dictionary<string, string>;
     }
 
 let defaultWorld = {
     entities = HashSet<string>();
     position = Dictionary<string, Position>();
     velocity = Dictionary<string, Velocity>();
-    texturePath = Dictionary<string,string>();
+    appearance = Dictionary<string,string>();
     }
 
 let destroyEntity id world = 
