@@ -9,18 +9,18 @@ open SharedServerClient
 
 
 type World = {
-    entities : HashSet<string>;
+    entities : HashSet<Entity>;
    
-    position: Dictionary<string, Position>;
-    velocity: Dictionary<string, Velocity>;
-    appearance: Dictionary<string, string>;
+    position: Dictionary<Entity, Position>;
+    velocity: Dictionary<Entity, Velocity>;
+    appearance: Dictionary<Entity, string>;
     }
 
 let defaultWorld = {
-    entities = HashSet<string>();
-    position = Dictionary<string, Position>();
-    velocity = Dictionary<string, Velocity>();
-    appearance = Dictionary<string,string>();
+    entities = HashSet<Entity>();
+    position = Dictionary<Entity, Position>();
+    velocity = Dictionary<Entity, Velocity>();
+    appearance = Dictionary<Entity, string>();
     }
 
 let destroyEntity id world = 
@@ -52,7 +52,7 @@ let private SendMessageToClients (clients: NetConnection list) (serverSocket:Net
 
 
 //Public facing functions
-let Start port =
+let StartSocket port =
     let config = new NetPeerConfiguration("pong")
     config.Port <- port
     let server = new NetServer(config)

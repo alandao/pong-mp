@@ -11,30 +11,30 @@ open HelperFunctions
 open SharedServerClient
 
 //  COMPONENTS
-type Appearance = { texture : string; size : Vector2 }
+type Appearance = { texture : Entity; size : Vector2 }
 
 
 type World = {
-    entities : HashSet<string>;
+    entities : HashSet<Entity>;
 
-    position: Dictionary<string, Position>;
-    velocity: Dictionary<string, Velocity>;
-    appearance: Dictionary<string, Appearance>;
+    position: Dictionary<Entity, Position>;
+    velocity: Dictionary<Entity, Velocity>;
+    appearance: Dictionary<Entity, Appearance>;
     }
 
 let defaultWorld = {
-    entities = HashSet<string>();
-    position = Dictionary<string, Position>();
-    velocity = Dictionary<string, Velocity>();
-    appearance = Dictionary<string, Appearance>();
+    entities = HashSet<Entity>();
+    position = Dictionary<Entity, Position>();
+    velocity = Dictionary<Entity, Velocity>();
+    appearance = Dictionary<Entity, Appearance>();
     }
 
-let destroyEntity id world = 
+let DestroyEntity id world = 
     world.position.Remove(id) |> ignore
     world.velocity.Remove(id) |> ignore
     world.entities.Remove(id)
 
-let addAppearance id textureName (world:World)  = 
+let AddAppearance id textureName (world:World)  = 
     let appr =  {    
                     texture = textureName; 
                     size = Vector2(1.f, 1.f);
@@ -44,7 +44,7 @@ let addAppearance id textureName (world:World)  =
 //  SYSTEMS
 
 //draw entities with position and appearance
-let RunAppearance textures (sb:SpriteBatch) world =
+let RunAppearance textures (sb:SpriteBatch) dummyTexture world =
     for entry in world.appearance do
         let id = entry.Key
         let appearance = entry.Value
@@ -52,13 +52,19 @@ let RunAppearance textures (sb:SpriteBatch) world =
         let position = tryFind id world.position
         let texture = tryFind appearance.texture textures
 
-        if Option.isSome position then
-            sb.Draw(Option.get texture, Option.get position, Color.White)
+        if Option.isNone position then
+            eprintfn "Client.RunAppearance: Cannot render entity \"%s\" without a position component!" id
+        else            
+            if Option.isNone texture then
+                eprintfn "Client.RunAppearance: Texture missing for \"%s\"!" id
+                sb.Draw(dummyTexture, Option.get position, Color.Magenta)
+            else
+                sb.Draw(Option.get texture, Option.get position, Color.White)
 
 
 //  OTHER
 
-let (getClientInputs : PlayerInput list) =
+let (GetClientInputs : PlayerInput list) =
     let mutable inputs = List.empty
     if (Keyboard.GetState().IsKeyDown(Keys.W)) then
         inputs <- PaddleUp true :: inputs
@@ -68,7 +74,7 @@ let (getClientInputs : PlayerInput list) =
 
 
 //Public facing functions
-let Start (ip:string) port = 
+let StartSocket (ip:string) port = 
     let config = new NetPeerConfiguration("pong")
     let client = new NetClient(config)
     client.Start()

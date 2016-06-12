@@ -4,6 +4,9 @@ open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
 
+
+type Entity = string
+
 //  Components
 type Position = Vector2
 let defaultPosition = Vector2(0.f, 0.f)

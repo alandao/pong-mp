@@ -18,10 +18,10 @@ type PongClient () as x =
     let mutable dummyTexture = Unchecked.defaultof<Texture2D>
 
     let mutable isHosting = true
-    let serverSocket = Server.Start 12345
+    let serverSocket = Server.StartSocket 12345
     let mutable clientsConnected = []
 
-    let clientSocket = Client.Start "localhost" 12345
+    let clientSocket = Client.StartSocket "localhost" 12345
 
     let serverWorld = Server.defaultWorld
     let clientWorld = Client.defaultWorld
@@ -73,7 +73,7 @@ type PongClient () as x =
         x.GraphicsDevice.Clear Color.CornflowerBlue
 
         do spriteBatch.Begin ()
-        Client.RunAppearance textures spriteBatch clientWorld
+        Client.RunAppearance textures spriteBatch dummyTexture clientWorld
 
         //debug top left square which turns orange if game is running less than 60fps
         spriteBatch.Draw(dummyTexture, new Rectangle(0, 0, 20, 20), Color.Green)
