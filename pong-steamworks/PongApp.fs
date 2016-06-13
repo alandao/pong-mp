@@ -10,7 +10,7 @@ open System.Collections.Generic
 type PongClient () as x =
     inherit Game()
 
-    do  x.Content.RootDirectory <- ""
+    do x.Content.RootDirectory <- ""
 
 
     let graphics = new GraphicsDeviceManager(x)

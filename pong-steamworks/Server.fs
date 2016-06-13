@@ -10,6 +10,7 @@ open SharedServerClient
 
 type World = {
     entities : HashSet<Entity>;
+    sharedEntities : HashSet<Entity>;
    
     position: Dictionary<Entity, Position>;
     velocity: Dictionary<Entity, Velocity>;
@@ -18,6 +19,8 @@ type World = {
 
 let defaultWorld = {
     entities = HashSet<Entity>();
+    sharedEntities = HashSet<Entity>();
+
     position = Dictionary<Entity, Position>();
     velocity = Dictionary<Entity, Velocity>();
     appearance = Dictionary<Entity, string>();
@@ -26,6 +29,7 @@ let defaultWorld = {
 let destroyEntity id world = 
     world.position.Remove(id) |> ignore
     world.velocity.Remove(id) |> ignore
+    world.appearance.Remove(id) |> ignore
     world.entities.Remove(id) |> ignore
 
 //  SYSTEMS
@@ -40,15 +44,13 @@ let private RunMovement (dt:float) world =
 
         if Option.isSome velocity then
             world.position.[id] <- advance world.position.[id] (Option.get velocity) 
+    
 
-let private SendMessageToClients (clients: NetConnection list) (serverSocket:NetServer) =
+let private SendWorldToClients world clients (serverSocket: NetServer) =
     let message = serverSocket.CreateMessage()
-    if List.isEmpty clients then
-        () // exit earlier since we don't need to send to any client.
-    let mutable (clients' : List<NetConnection>) = new List<NetConnection>()
-    List.iter (fun x -> clients'.Add(x)) clients
     message.Write("Server reporting in!")
-    serverSocket.SendMessage(message, clients' , NetDeliveryMethod.Unreliable, 0)
+    for client in clients do
+        serverSocket.SendMessage(message, client, NetDeliveryMethod.Unreliable) |> ignore
 
 
 //Public facing functions
