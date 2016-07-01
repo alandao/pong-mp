@@ -22,3 +22,6 @@ type ClientToServerMsg =
     | PaddleAt of x : float * y : float
 
 
+//  Server Message types
+let msg_snapshot = 0
+

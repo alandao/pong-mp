@@ -2,6 +2,7 @@
 
 open Microsoft.Xna.Framework
 open System.Collections.Generic
+open System.Runtime.Serialization.Formatters.Binary
 open Lidgren.Network
 
 open HelperFunctions
@@ -46,9 +47,26 @@ let private RunMovement (dt:float) world =
             world.position.[id] <- advance world.position.[id] (Option.get velocity) 
     
 
-let private SendWorldToClients world clients (serverSocket: NetServer) =
+let private SendWorldToClients (world:World) clients (serverSocket:NetServer) =
     let message = serverSocket.CreateMessage()
-    message.Write("Server reporting in!")
+
+    let binaryFormatter = new BinaryFormatter()
+    let stream = new System.IO.MemoryStream()
+    let netBuffer = new NetBuffer()
+
+    ignore (world.sharedEntities.Add("fsdfg"))
+
+    binaryFormatter.Serialize(stream, world.sharedEntities)
+
+    //could possibly blow up if sharedentities is bigger than int32's max length.
+    let bytesSharedEntities : byte [] = Array.zeroCreate (System.Convert.ToInt32 stream.Length)
+    for i in 0..bytesSharedEntities.Length - 1 do
+        bytesSharedEntities.[i] <- stream.GetBuffer().[i]
+
+    netBuffer.Write(bytesSharedEntities.Length)
+    netBuffer.Write(bytesSharedEntities)
+    netBuffer.Write("Packet read okay!")
+    message.Write(netBuffer)
     for client in clients do
         serverSocket.SendMessage(message, client, NetDeliveryMethod.Unreliable) |> ignore
 
@@ -102,6 +120,6 @@ let Update (clients : NetConnection list) serverWorld dt (serverSocket:NetServer
     RunMovement dt serverWorld
             
     //send world to clients.
-    SendMessageToClients clients' serverSocket
+    SendWorldToClients serverWorld clients' serverSocket
 
     clients'

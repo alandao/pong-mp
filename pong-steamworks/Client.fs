@@ -5,6 +5,8 @@ open Microsoft.Xna.Framework.Content
 open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
 open System.Collections.Generic
+open System.IO
+open System.Runtime.Serialization.Formatters.Binary
 open Lidgren.Network
 
 open HelperFunctions
@@ -87,8 +89,13 @@ let Update (world:World) (clientSocket:NetClient) =
     while message <> null do
         match message.MessageType with
         | NetIncomingMessageType.Data ->
-            let data = message.ReadString()
-            printfn "Client: Message received: %s" data
+            let binaryFormatter = new BinaryFormatter()
+
+            let sizeSharedEntities = message.ReadInt32()
+            printfn "Client: SharedEntities size: %i" sizeSharedEntities
+            let sharedEntities = binaryFormatter.Deserialize(new MemoryStream(message.ReadBytes sizeSharedEntities)) :?> HashSet<Entity>
+            let ackMsg = message.ReadString()
+            printfn "Client: Ack msg: %s" ackMsg
 
         | NetIncomingMessageType.StatusChanged -> ()
         | NetIncomingMessageType.DebugMessage -> ()
