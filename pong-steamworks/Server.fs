@@ -12,19 +12,19 @@ type World = {
     entities : HashSet<Entity>;
     sharedEntities : HashSet<Entity>;
 
-    components : HashSet<Dictionary<Entity, Component>>;
+    components : HashSet<EntityComponentDictionary>;
     }
 
 let defaultWorld = {
     entities = HashSet<Entity>();
     sharedEntities = HashSet<Entity>();
 
-    components = HashSet<Dictionary<Entity, Component>>();
+    components = HashSet<EntityComponentDictionary>();
     }
 
 let destroyEntity id world =
     for comp in world.components do
-        comp.Remove(id) |> ignore
+        EntityComponentRemove id comp |> ignore
     world.sharedEntities.Remove(id) |> ignore
     world.entities.Remove(id) |> ignore
 

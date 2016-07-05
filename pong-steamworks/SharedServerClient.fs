@@ -3,6 +3,7 @@
 open Microsoft.Xna.Framework
 open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
+open System.Collections.Generic
 
 
 type Entity = string
@@ -17,15 +18,22 @@ let defaultVelocity = Vector2(0.f, 0.f)
 type Appearance = { texture : string; size : Vector2 }
 let defaultAppearance = { texture = ""; size = Vector2(0.f, 0.f);}
 
-type Component = 
-    | CPosition of Position
-    | CVelocity of Vector2
-    | CAppearance of Appearance
-
+//ComponentBit is used for concisely sending schema info over the internet
 type ComponentBit =
-    | bPosition = 0x00000001
-    | bVelocity = 0x00000002
-    | bAppearance = 0x00000004
+    | Position = 0x00000001
+    | Velocity = 0x00000002
+    | Appearance = 0x00000004
+
+type EntityComponentDictionary =
+    | EntityPosition of Dictionary<Entity, Position>
+    | EntityVelocity of Dictionary<Entity, Velocity>
+    | EntityAppearance of Dictionary<Entity, Appearance>
+let EntityComponentRemove id dict =
+    match dict with
+    | EntityPosition dict -> dict.Remove(id)
+    | EntityVelocity dict -> dict.Remove(id)
+    | EntityAppearance dict -> dict.Remove(id)
+
 
 type PlayerInput = 
     | PaddleUp of bool

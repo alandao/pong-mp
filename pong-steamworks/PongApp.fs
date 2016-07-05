@@ -29,14 +29,13 @@ type PongClient () as x =
 
     let textures = Dictionary<string, Texture2D>()
 
-    let position = Dictionary<Entity, Position>()
-
-    let velocity = Dictionary<Entity, Velocity>()
-    let appearance = Dictionary<Entity, Appearance>()
+    let entityPosition = Dictionary<Entity, Position>() |> EntityPosition
+    let entityVelocity = Dictionary<Entity, Velocity>()
+    let entityAppearance = Dictionary<Entity, Appearance>()
 
     override x.Initialize() =
         spriteBatch <- new SpriteBatch(x.GraphicsDevice)
-        serverWorld.components.Add(position) |> ignore
+        serverWorld.components.Add(entityPosition) |> ignore
 
         
         serverWorld.entities.Add("obstacle") |> ignore
