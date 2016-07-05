@@ -6,6 +6,7 @@ open Microsoft.Xna.Framework.Input
 open Lidgren.Network
 open System.Collections.Generic
 
+open SharedServerClient
 
 type PongClient () as x =
     inherit Game()
@@ -19,7 +20,7 @@ type PongClient () as x =
 
     let mutable isHosting = true
     let serverSocket = Server.StartSocket 12345
-    let mutable clientsConnected = []
+    let mutable clientsConnected:NetConnection list = []
 
     let clientSocket = Client.StartSocket "localhost" 12345
 
@@ -28,8 +29,14 @@ type PongClient () as x =
 
     let textures = Dictionary<string, Texture2D>()
 
+    let position = Dictionary<Entity, Position>()
+
+    let velocity = Dictionary<Entity, Velocity>()
+    let appearance = Dictionary<Entity, Appearance>()
+
     override x.Initialize() =
         spriteBatch <- new SpriteBatch(x.GraphicsDevice)
+        serverWorld.components.Add(position) |> ignore
 
         
         serverWorld.entities.Add("obstacle") |> ignore
@@ -87,7 +94,6 @@ type PongClient () as x =
 
 [<EntryPoint>]
 let main argv =
-
     //initialize client
     use client = new PongClient()
     //statement below will block

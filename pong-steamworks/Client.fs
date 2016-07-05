@@ -6,14 +6,11 @@ open Microsoft.Xna.Framework.Graphics
 open Microsoft.Xna.Framework.Input
 open System.Collections.Generic
 open System.IO
-open System.Runtime.Serialization.Formatters.Binary
 open Lidgren.Network
 
 open HelperFunctions
 open SharedServerClient
 
-//  COMPONENTS
-type Appearance = { texture : Entity; size : Vector2 }
 
 
 type World = {
@@ -89,11 +86,12 @@ let Update (world:World) (clientSocket:NetClient) =
     while message <> null do
         match message.MessageType with
         | NetIncomingMessageType.Data ->
-            let binaryFormatter = new BinaryFormatter()
-
+            printfn "Client: Incoming packet byte size: %i" message.LengthBytes
             let sizeSharedEntities = message.ReadInt32()
             printfn "Client: SharedEntities size: %i" sizeSharedEntities
-            let sharedEntities = binaryFormatter.Deserialize(new MemoryStream(message.ReadBytes sizeSharedEntities)) :?> HashSet<Entity>
+            for i in 0..sizeSharedEntities - 1 do
+                let entity = message.ReadString()
+                world.entities.Add(entity)
             let ackMsg = message.ReadString()
             printfn "Client: Ack msg: %s" ackMsg
 

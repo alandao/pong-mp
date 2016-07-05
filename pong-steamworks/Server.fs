@@ -2,7 +2,6 @@
 
 open Microsoft.Xna.Framework
 open System.Collections.Generic
-open System.Runtime.Serialization.Formatters.Binary
 open Lidgren.Network
 
 open HelperFunctions
@@ -12,63 +11,77 @@ open SharedServerClient
 type World = {
     entities : HashSet<Entity>;
     sharedEntities : HashSet<Entity>;
-   
-    position: Dictionary<Entity, Position>;
-    velocity: Dictionary<Entity, Velocity>;
-    appearance: Dictionary<Entity, string>;
+
+    components : HashSet<Dictionary<Entity, Component>>;
     }
 
 let defaultWorld = {
     entities = HashSet<Entity>();
     sharedEntities = HashSet<Entity>();
 
-    position = Dictionary<Entity, Position>();
-    velocity = Dictionary<Entity, Velocity>();
-    appearance = Dictionary<Entity, string>();
+    components = HashSet<Dictionary<Entity, Component>>();
     }
 
-let destroyEntity id world = 
-    world.position.Remove(id) |> ignore
-    world.velocity.Remove(id) |> ignore
-    world.appearance.Remove(id) |> ignore
+let destroyEntity id world =
+    for comp in world.components do
+        comp.Remove(id) |> ignore
+    world.sharedEntities.Remove(id) |> ignore
     world.entities.Remove(id) |> ignore
 
 //  SYSTEMS
 
 //updates entities with position and velocity
-let private RunMovement (dt:float) world =
+let private RunMovement (dt:float) (posComponents:Dictionary<Entity, Position>) velComponents =
     let advance (pos:Position) (vel:Vector2) = ( pos + (float32 dt * vel) : Position)
 
-    let entities = List<string>(world.position.Keys)
+    let entities = List<string>(posComponents.Keys)
     for id in entities do
-        let velocity = tryFind id world.velocity
+        let velocity = tryFind id velComponents
 
         if Option.isSome velocity then
-            world.position.[id] <- advance world.position.[id] (Option.get velocity) 
-    
+            posComponents.[id] <- advance posComponents.[id] (Option.get velocity) 
 
-let private SendWorldToClients (world:World) clients (serverSocket:NetServer) =
+//Clients will first receive a schema update before receiving world updates
+let private SendSchemaToClients (world:World) clients (serverSocket:NetServer) =
+    let mask x =
+        let mutable buffer = 0
+        if world.position.ContainsKey(x) then
+            buffer <- buffer + int ComponentBit.bPosition
+        if world.velocity.ContainsKey(x) then
+            buffer <- buffer + int ComponentBit.bVelocity
+        if world.appearance.ContainsKey(x) then
+            buffer <- buffer + int ComponentBit.bAppearance
+        
+        if buffer = 0 then
+            eprintfn "Server: Entity %s has no components!" x
+            System.Diagnostics.Debugger.Launch() |> ignore
+            System.Diagnostics.Debugger.Break()
+        buffer
+
     let message = serverSocket.CreateMessage()
-
-    let binaryFormatter = new BinaryFormatter()
-    let stream = new System.IO.MemoryStream()
     let netBuffer = new NetBuffer()
 
-    ignore (world.sharedEntities.Add("fsdfg"))
+    netBuffer.Write(world.sharedEntities.Count)
+    for entity in world.sharedEntities do
+        netBuffer.Write(entity)
+        netBuffer.Write(mask entity)
+    netBuffer.Write("Schema Update okay!")
 
-    binaryFormatter.Serialize(stream, world.sharedEntities)
+    
+let private SendWorldToClients (world:World) clients (serverSocket:NetServer) =
 
-    //could possibly blow up if sharedentities is bigger than int32's max length.
-    let bytesSharedEntities : byte [] = Array.zeroCreate (System.Convert.ToInt32 stream.Length)
-    for i in 0..bytesSharedEntities.Length - 1 do
-        bytesSharedEntities.[i] <- stream.GetBuffer().[i]
-
-    netBuffer.Write(bytesSharedEntities.Length)
-    netBuffer.Write(bytesSharedEntities)
-    netBuffer.Write("Packet read okay!")
-    message.Write(netBuffer)
+    //for each client, send a full snapshot of the gamestate
     for client in clients do
+        let message = serverSocket.CreateMessage()
+        let netBuffer = new NetBuffer()
+        netBuffer.Write(world.sharedEntities.Count)
+        for entity in world.sharedEntities do
+            netBuffer.Write(entity)
+            
+        netBuffer.Write("World Update okay!")
+        message.Write(netBuffer)
         serverSocket.SendMessage(message, client, NetDeliveryMethod.Unreliable) |> ignore
+
 
 
 //Public facing functions
@@ -79,8 +92,8 @@ let StartSocket port =
     server.Start()
     server
 
-let Update (clients : NetConnection list) serverWorld dt (serverSocket:NetServer) =
-    let mutable clients' = clients
+let Start port serverWorld dt (serverSocket:NetServer) =
+    let mutable clients:NetConnection list = []
 
     //process messages from clients
     let mutable message = serverSocket.ReadMessage()

@@ -61,6 +61,7 @@
     <Compile Include="Server.fs" />
     <Compile Include="Client.fs" />
     <Compile Include="PongApp.fs" />
+    <None Include="Script1.fsx" />
     <None Include="App.config" />
     <Content Include="packages.config" />
     <None Include="obstacle.png">
