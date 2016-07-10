@@ -12,21 +12,15 @@ type World = {
     entities : HashSet<Entity>;
     sharedEntities : HashSet<Entity>;
 
-    components : HashSet<EntityComponentDictionary>;
+    components : Dictionary<System.Type, EntityComponentDictionary>;
     }
 
 let defaultWorld = {
     entities = HashSet<Entity>();
     sharedEntities = HashSet<Entity>();
 
-    components = HashSet<EntityComponentDictionary>();
+    components = Dictionary<System.Type, EntityComponentDictionary>();
     }
-
-let destroyEntity id world =
-    for comp in world.components do
-        EntityComponentRemove id comp |> ignore
-    world.sharedEntities.Remove(id) |> ignore
-    world.entities.Remove(id) |> ignore
 
 //  SYSTEMS
 
@@ -42,7 +36,7 @@ let private RunMovement (dt:float) (posComponents:Dictionary<Entity, Position>) 
             posComponents.[id] <- advance posComponents.[id] (Option.get velocity) 
 
 //Clients will first receive a schema update before receiving world updates
-let private SendSchemaToClients (world:World) clients (serverSocket:NetServer) =
+let private SendSchemaToClients entities  clients (serverSocket:NetServer) =
     let mask x =
         let mutable buffer = 0
         if world.position.ContainsKey(x) then

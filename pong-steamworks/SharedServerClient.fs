@@ -1,38 +1,33 @@
 ﻿module SharedServerClient
 
 open Microsoft.Xna.Framework
-open Microsoft.Xna.Framework.Graphics
-open Microsoft.Xna.Framework.Input
 open System.Collections.Generic
 
+open Components
 
-type Entity = string
+type Entity = System.Guid
 
-//  Components
-type Position = Vector2
-let defaultPosition = Vector2(0.f, 0.f)
-
-type Velocity = Vector2
-let defaultVelocity = Vector2(0.f, 0.f)
-
-type Appearance = { texture : string; size : Vector2 }
-let defaultAppearance = { texture = ""; size = Vector2(0.f, 0.f);}
-
-//ComponentBit is used for concisely sending schema info over the internet
-type ComponentBit =
-    | Position = 0x00000001
-    | Velocity = 0x00000002
-    | Appearance = 0x00000004
+let CreateEntity() = System.Guid.NewGuid()
 
 type EntityComponentDictionary =
-    | EntityPosition of Dictionary<Entity, Position>
-    | EntityVelocity of Dictionary<Entity, Velocity>
-    | EntityAppearance of Dictionary<Entity, Appearance>
+    | Position of Dictionary<Entity, Position>
+    | Velocity of Dictionary<Entity, Velocity>
+    | Appearance of Dictionary<Entity, Appearance>
+
 let EntityComponentRemove id dict =
     match dict with
-    | EntityPosition dict -> dict.Remove(id)
-    | EntityVelocity dict -> dict.Remove(id)
-    | EntityAppearance dict -> dict.Remove(id)
+    | Position dict -> dict.Remove(id)
+    | Velocity dict -> dict.Remove(id)
+    | Appearance dict -> dict.Remove(id)
+
+type ComponentStore = Dictionary<System.Type, EntityComponentDictionary>
+
+let EntityAddComponent id comp (componentStore:Dictionary<System.Type, EntityComponentDictionary>) =
+    componentStore.[comp.GetType()]
+    //TODO: Finish add function
+let DestroyEntity id (componentStore:Dictionary<System.Type, EntityComponentDictionary>) =
+    for comp in componentStore do
+        EntityComponentRemove id comp.Value |> ignore
 
 
 type PlayerInput = 
