@@ -2,4 +2,6 @@
 
 open System.Collections.Generic
 
-let tryFind id (dict:Dictionary<'a,'b>) = if dict.ContainsKey(id) then Some(dict.[id]) else None
+module DictionaryX =
+    let TryFind x (dict:Dictionary<'a,'b>) = if dict.ContainsKey(x) then Some(dict.[x]) else None
+

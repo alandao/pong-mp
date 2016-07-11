@@ -58,6 +58,7 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="HelperFunctions.fs" />
     <Compile Include="Components.fs" />
+    <Compile Include="EntitySystems.fs" />
     <Compile Include="SharedServerClient.fs" />
     <Compile Include="Server.fs" />
     <Compile Include="Client.fs" />
