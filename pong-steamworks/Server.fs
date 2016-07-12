@@ -6,63 +6,30 @@ open Lidgren.Network
 
 open HelperFunctions
 open SharedServerClient
+open ECS
+open ECSTypes
 
-
-type World = {
-    entities : HashSet<Entity>;
-    sharedEntities : HashSet<Entity>;
-
-    components : Dictionary<System.Type, EntityComponentDictionary>;
-    }
-
-let defaultWorld = {
-    entities = HashSet<Entity>();
-    sharedEntities = HashSet<Entity>();
-
-    components = Dictionary<System.Type, EntityComponentDictionary>();
-    }
 
 //  SYSTEMS
 
-//updates entities with position and velocity
-let private RunMovement (dt:float) (posComponents:Dictionary<Entity, Position>) velComponents =
-    let advance (pos:Position) (vel:Vector2) = ( pos + (float32 dt * vel) : Position)
-
-    let entities = List<string>(posComponents.Keys)
-    for id in entities do
-        let velocity = tryFind id velComponents
-
-        if Option.isSome velocity then
-            posComponents.[id] <- advance posComponents.[id] (Option.get velocity) 
-
-//Clients will first receive a schema update before receiving world updates
-let private SendSchemaToClients entities  clients (serverSocket:NetServer) =
-    let mask x =
-        let mutable buffer = 0
-        if world.position.ContainsKey(x) then
-            buffer <- buffer + int ComponentBit.bPosition
-        if world.velocity.ContainsKey(x) then
-            buffer <- buffer + int ComponentBit.bVelocity
-        if world.appearance.ContainsKey(x) then
-            buffer <- buffer + int ComponentBit.bAppearance
-        
-        if buffer = 0 then
-            eprintfn "Server: Entity %s has no components!" x
-            System.Diagnostics.Debugger.Launch() |> ignore
-            System.Diagnostics.Debugger.Break()
-        buffer
-
+//Clients will first receive a schema update before receiving world updates 
+let private SendSchemaToClients entityManager clients (serverSocket:NetServer) =
     let message = serverSocket.CreateMessage()
     let netBuffer = new NetBuffer()
-
-    netBuffer.Write(world.sharedEntities.Count)
-    for entity in world.sharedEntities do
-        netBuffer.Write(entity)
-        netBuffer.Write(mask entity)
+    
+    netBuffer.Write(byte ServerMessage.Schema)
+    netBuffer.Write(entityManager.entities.Count)
+    for entID in entityManager.entities do
+        netBuffer.Write(entID.ToByteArray())
+        netBuffer.Write(ComponentMask entID entityManager)
     netBuffer.Write("Schema Update okay!")
+    message.Write(netBuffer)
+
+    for client in clients do
+        serverSocket.SendMessage(message, client, NetDeliveryMethod.Unreliable) |> ignore
 
     
-let private SendWorldToClients (world:World) clients (serverSocket:NetServer) =
+let private SendGameStateToClients (world:World) clients (serverSocket:NetServer) =
 
     //for each client, send a full snapshot of the gamestate
     for client in clients do
