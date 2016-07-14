@@ -24,9 +24,9 @@ type Entity = System.Guid
 
 type EntityManager =
     {
-        entities : HashSet<Entity>;
+        entities : HashSet<Entity>
         //will hold all possible components
-        position : Dictionary<Entity, Position>;
-        velocity : Dictionary<Entity, Velocity>;
-        appearance: Dictionary<Entity, Appearance>;
+        position : Dictionary<Entity, Position>
+        velocity : Dictionary<Entity, Velocity>
+        appearance: Dictionary<Entity, Appearance>
     }

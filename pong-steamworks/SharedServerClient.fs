@@ -3,6 +3,7 @@
 open Microsoft.Xna.Framework
 open System.Collections.Generic
 
+open HelperFunctions
 open ECS
 open ECSTypes
 
@@ -11,7 +12,7 @@ open ECSTypes
 
 //updates entities with position and velocity
 let private RunMovement (dt:float) (posComponents:Dictionary<Entity, Position>) velComponents =
-    let advance (pos:Position) (vel:Vector2) = ( pos + (float32 dt * vel) : Position)
+    let advance (pos:Position) (vel:Velocity) = ( pos + (float32 dt * vel) : Position)
 
     let entities = List<Entity>(posComponents.Keys)
     for entID in entities do
