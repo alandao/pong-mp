@@ -13,13 +13,28 @@ open ECSTypes
 
 //ComponentSyncMask determines what components of the entity we want to sync to the clients
 type SyncedComponentMask = int
-type ServerEntityManager =
+type MasterGameState =
     { 
         entityManager : EntityManager
         //all entity keys belong in entityManager
         synchronizedEntities : Dictionary<Entity, SyncedComponentMask>
     }
+type Snapshot =
+    {
+        synchronizedEntityManager : EntityManager
+        synchronizedEntities : Dictionary<Entity, SyncedComponentMask>
+        clientAcknowledged : bool
+    }
 
+type ClientSnapshots = Snapshot array
+
+let DummySnapshot = 
+    {
+        synchronizedEntityManager = emptyEntityManager
+        synchronizedEntities = new Dictionary<Entity, SyncedComponentMask>()
+        //clientAcknowledged isn't required state here
+        clientAcknowledged = true
+    }
 
 //  SYSTEMS
 

@@ -11,7 +11,6 @@ type Velocity = Vector2
 let defaultVelocity = Vector2(0.f, 0.f)
 
 type Appearance = { texture : string; size : Vector2 }
-let defaultAppearance = { texture = ""; size = Vector2(0.f, 0.f);}
 
 //ComponentBit is used for sending schema info over the internet
 type ComponentBit =
@@ -29,4 +28,12 @@ type EntityManager =
         position : Dictionary<Entity, Position>
         velocity : Dictionary<Entity, Velocity>
         appearance: Dictionary<Entity, Appearance>
+    }
+let emptyEntityManager =
+    {
+        entities = new HashSet<Entity>()
+        //will hold all possible components
+        position = new Dictionary<Entity, Position>()
+        velocity = new Dictionary<Entity, Velocity>()
+        appearance = new Dictionary<Entity, Appearance>()
     }
