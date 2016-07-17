@@ -13,12 +13,14 @@ open ECSTypes
 
 //ComponentSyncMask determines what components of the entity we want to sync to the clients
 type SyncedComponentMask = int
-type MasterGameState =
+type ServerEntityManager =
     { 
         entityManager : EntityManager
-        //all entity keys belong in entityManager
+        //all entity keys for synchronizedEntities belong in entityManager
         synchronizedEntities : Dictionary<Entity, SyncedComponentMask>
     }
+
+//Snapshots are what the server sends to a client to update their gamestate
 type Snapshot =
     {
         synchronizedEntityManager : EntityManager
@@ -26,9 +28,10 @@ type Snapshot =
         clientAcknowledged : bool
     }
 
-type ClientSnapshots = Snapshot array
+//The server keeps track of snapshots it sent to the client
+type Client = NetConnection * Queue<Snapshot>
 
-let DummySnapshot = 
+let dummySnapshot() = 
     {
         synchronizedEntityManager = emptyEntityManager
         synchronizedEntities = new Dictionary<Entity, SyncedComponentMask>()
@@ -37,6 +40,28 @@ let DummySnapshot =
     }
 
 //  SYSTEMS
+
+let deltaCompress (snapshot : Snapshot) (baseline : ServerEntityManager) =
+    let deltaCompressedSnapshot = dummySnapshot()
+
+let SendSnapshotToClients serverEntityManager (clients : Client list) (serverSocket : NetServer) =
+
+    for clientSnapshotTuple in clients do
+        let message = serverSocket.CreateMessage()
+        let netBuffer = new NetBuffer()
+        let client = fst clientSnapshotTuple
+        let snapshots = snd clientSnapshotTuple
+
+        netBuffer.Write(byte ServerMessage.Snapshot)
+        //get the last acked snapshot for client to diff with baseline
+        let lastAckedSnapshot =
+            let mutable lastAckedSnapshot' = dummySnapshot()
+
+            for snapshot in snapshots do
+                if snapshot.clientAcknowledged then
+                    lastAckedSnapshot' <- snapshot
+            lastAckedSnapshot'
+
 
 //Clients will first receive a schema update before receiving world updates 
 let SendFullSchemaToClients serverEntityManager clients (serverSocket:NetServer) =
