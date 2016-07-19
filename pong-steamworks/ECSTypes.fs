@@ -12,12 +12,20 @@ let defaultVelocity = Vector2(0.f, 0.f)
 
 type Appearance = { texture : string; size : Vector2 }
 
-//ComponentBit is used for sending schema info over the internet
-type ComponentBit =
-    | Position = 0x00000001
-    | Velocity = 0x00000002
-    | Appearance = 0x00000004
+//determines what components of the entity are synced
+type NetworkComponentMask = uint32
 
+
+
+
+//used for sending schema info over the internet
+type ComponentBit =
+    | Position = 1u
+    | Velocity = 2u
+    | Appearance = 4u
+
+//determines what components were changed during delta compression
+type ComponentDiffMask = uint32
 
 type Entity = System.Guid
 
@@ -28,6 +36,9 @@ type EntityManager =
         position : Dictionary<Entity, Position>
         velocity : Dictionary<Entity, Velocity>
         appearance: Dictionary<Entity, Appearance>
+
+        //server use
+        network: Dictionary<Entity, NetworkComponentMask>
     }
 let emptyEntityManager =
     {
@@ -36,4 +47,6 @@ let emptyEntityManager =
         position = new Dictionary<Entity, Position>()
         velocity = new Dictionary<Entity, Velocity>()
         appearance = new Dictionary<Entity, Appearance>()
+
+        network = new Dictionary<Entity, NetworkComponentMask>()
     }
