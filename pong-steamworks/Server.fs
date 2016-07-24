@@ -8,6 +8,7 @@ open HelperFunctions
 open SharedServerClient
 open ECS
 open ECSTypes
+open ECSNetwork
 
 //Types
 
@@ -29,57 +30,48 @@ let DummySnapshot() =
     }
 
 
-let WriteDelta (entity : Entity) (snapshot : Snapshot) (baseline : EntityManager) (netBuffer : NetBuffer) =
-    let isSynced x = (baseline.network.[entity] &&& (uint32 x)) <> 0u
+let DeltaEntity (entity : Entity) (snapshot : Snapshot) (baseline : EntityManager) =
+    let netBuffer = new NetBuffer()
 
-    netBuffer.Write(entity.ToByteArray())
+    netBuffer.Write(entity)
 
-    let mutable componentDiff : ComponentDiffMask = 0u
+    let willSync x = (baseline.network.[entity] &&& (uint32 x)) <> 0u
+    let mutable entityDiffMask : ComponentDiffMask = 0u
 
-    if ComponentBit.Appearance |> isSynced then
-        if (snapshot.entities.appearance.[entity] <> baseline.appearance.[entity]) then
-            componentDiff <- componentDiff + uint32 ComponentBit.Appearance
-    if ComponentBit.Position |> isSynced then
-        if (snapshot.entities.position.[entity] <> baseline.position.[entity]) then
-            componentDiff <- componentDiff + uint32 ComponentBit.Position        
-    if ComponentBit.Velocity |> isSynced then
-        if (snapshot.entities.velocity.[entity] <> baseline.velocity.[entity]) then
-            componentDiff <- componentDiff + uint32 ComponentBit.Velocity
+    if ComponentBit.Appearance |> willSync then
+        if (not <| snapshot.entities.appearance.ContainsKey(entity) && 
+                (snapshot.entities.appearance.[entity] <> baseline.appearance.[entity])) then
+            entityDiffMask <- entityDiffMask + uint32 ComponentBit.Appearance
+    if ComponentBit.Position |> willSync then
+        if (not <| snapshot.entities.position.ContainsKey(entity) && 
+                (snapshot.entities.position.[entity] <> baseline.position.[entity])) then
+            entityDiffMask <- entityDiffMask + uint32 ComponentBit.Position 
+    if ComponentBit.Velocity |> willSync then
+        if (not <| snapshot.entities.position.ContainsKey(entity) && 
+                (snapshot.entities.velocity.[entity] <> baseline.velocity.[entity])) then
+            entityDiffMask <- entityDiffMask + uint32 ComponentBit.Velocity
 
-    netBuffer.Write(componentDiff)
+    netBuffer.Write(entityDiffMask)
 
-    let isChanged x = (componentDiff &&& (uint32 x)) <> 0u
-    if ComponentBit.Appearance |> isChanged then
-        () //Write appearance
-    if ComponentBit.Position |> isChanged then
-        ()
-    if ComponentBit.Velocity |> isChanged then
-        ()
+    let needsUpdate x = (entityDiffMask &&& (uint32 x)) <> 0u
 
-let DeltaCompress (lastAckedSnapshot : Snapshot) (baseline : ServerEntityManager) =
-    let (>>=) m f = Option.bind f m
+    if ComponentBit.Appearance |> needsUpdate then
+        let appr = baseline.appearance.[entity]
+        netBuffer.Write(NetBufferAppearance appr)
+    if ComponentBit.Position |> needsUpdate then
+        let pos = baseline.position.[entity]
+        netBuffer.Write(NetBufferPosition pos)
+    if ComponentBit.Velocity |> needsUpdate then
+        let vel = baseline.velocity.[entity]
+        netBuffer.Write(NetBufferVelocity vel)
 
-    let SyncComponentsToNewSnapshot entity (mask : SyncedComponentMask) (baseline : EntityManager) (newSnapshot : EntityManager) =
-        if (mask &&& int ComponentBit.Appearance) <> 0 then
-            newSnapshot.appearance.Add(entity, baseline.appearance.[entity])
-        if (mask &&& int ComponentBit.Position) <> 0 then
-            newSnapshot.position.Add(entity, baseline.position.[entity])       
-        if (mask &&& int ComponentBit.Velocity) <> 0 then
-            newSnapshot.velocity.Add(entity, baseline.velocity.[entity])
+    netBuffer
 
-    let newSnapshot = DummySnapshot()
-    for entMaskPair in baseline.synchronizedEntities do
-        let baselineEntity = entMaskPair.Key
-        let baselineEntityMask = entMaskPair.Value
-        if not <| lastAckedSnapshot.synchronizedEntities.ContainsKey(baselineEntity) then
-            //this is a new entity, add it and its components from the baseline to the new snapshot
-            newSnapshot.synchronizedEntities.Add(baselineEntity, baselineEntityMask)
-            newSnapshot.synchronizedEntityManager.entities.Add(baselineEntity) |> ignore
-            SyncComponentsToNewSnapshot baselineEntity baselineEntityMask baseline.entityManager newSnapshot.synchronizedEntityManager
-        else 
-            if lastAckedSnapshot.synchronizedEntities.[baselineEntity] <> baselineEntityMask then
-                //we have components to remove or add to the new snapshot for that entity
-
+let DeltaSnapshot (snapshot : Snapshot) (baseline : EntityManager) =
+    let netBuffer = new NetBuffer()
+    
+    for entity in baseline.entities do
+        
 
 let SendSnapshotToClients serverEntityManager (clients : Client list) (serverSocket : NetServer) =
 

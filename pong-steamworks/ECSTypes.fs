@@ -3,14 +3,17 @@
 open Microsoft.Xna.Framework
 open System.Collections.Generic
 
+let MaxEntityCount = System.UInt32.MaxValue
+
 //  Component data
+type Appearance = { texture : string; size : Vector2 }
+
 type Position = Vector2
 let defaultPosition = Vector2(0.f, 0.f)
 
 type Velocity = Vector2
 let defaultVelocity = Vector2(0.f, 0.f)
 
-type Appearance = { texture : string; size : Vector2 }
 
 //determines what components of the entity are synced
 type NetworkComponentMask = uint32
@@ -27,7 +30,7 @@ type ComponentBit =
 //determines what components were changed during delta compression
 type ComponentDiffMask = uint32
 
-type Entity = System.Guid
+type Entity = uint32
 
 type EntityManager =
     {
