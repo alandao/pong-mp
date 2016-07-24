@@ -39,15 +39,15 @@ let DeltaEntity (entity : Entity) (snapshot : Snapshot) (baseline : EntityManage
     let mutable entityDiffMask : ComponentDiffMask = 0u
 
     if ComponentBit.Appearance |> willSync then
-        if (not <| snapshot.entities.appearance.ContainsKey(entity) && 
+        if (not <| snapshot.entities.appearance.ContainsKey(entity) || 
                 (snapshot.entities.appearance.[entity] <> baseline.appearance.[entity])) then
             entityDiffMask <- entityDiffMask + uint32 ComponentBit.Appearance
     if ComponentBit.Position |> willSync then
-        if (not <| snapshot.entities.position.ContainsKey(entity) && 
+        if (not <| snapshot.entities.position.ContainsKey(entity) || 
                 (snapshot.entities.position.[entity] <> baseline.position.[entity])) then
             entityDiffMask <- entityDiffMask + uint32 ComponentBit.Position 
     if ComponentBit.Velocity |> willSync then
-        if (not <| snapshot.entities.position.ContainsKey(entity) && 
+        if (not <| snapshot.entities.position.ContainsKey(entity) || 
                 (snapshot.entities.velocity.[entity] <> baseline.velocity.[entity])) then
             entityDiffMask <- entityDiffMask + uint32 ComponentBit.Velocity
 
@@ -71,7 +71,7 @@ let DeltaSnapshot (snapshot : Snapshot) (baseline : EntityManager) =
     let netBuffer = new NetBuffer()
     
     for entity in baseline.entities do
-        
+        //if entity didn't exist in snapshot,
 
 let SendSnapshotToClients serverEntityManager (clients : Client list) (serverSocket : NetServer) =
 
