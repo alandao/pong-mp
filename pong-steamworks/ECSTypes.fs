@@ -3,7 +3,7 @@
 open Microsoft.Xna.Framework
 open System.Collections.Generic
 
-let MaxEntityCount = System.UInt32.MaxValue
+let MaxEntityCount = 4096u
 
 //  Component data
 type Appearance = { texture : string; size : Vector2 }
@@ -40,7 +40,6 @@ type EntityManager =
         velocity : Dictionary<Entity, Velocity>
         appearance: Dictionary<Entity, Appearance>
 
-        //server use
         network: Dictionary<Entity, NetworkComponentMask>
     }
 let emptyEntityManager =

@@ -58,7 +58,7 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="HelperFunctions.fs" />
     <Compile Include="ECSTypes.fs" />
-    <Compile Include="ECSNetwork.fs" />
+    <Compile Include="ECSNetworkServer.fs" />
     <Compile Include="ECS.fs" />
     <Compile Include="SharedServerClient.fs" />
     <Compile Include="Server.fs" />

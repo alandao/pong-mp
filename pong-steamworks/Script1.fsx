@@ -1,4 +1,8 @@
-﻿let (a : uint32) = 2147483690u
+﻿let a = 128
+let b = 999999
+let c = 10
 
-let b = a &&& 1u
-let c = a &&& 2147483648u
+let mutable test = System.BitConverter.GetBytes(a)
+test <- System.BitConverter.GetBytes(b)
+test
+test <- System.BitConverter.GetBytes(c)

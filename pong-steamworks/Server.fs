@@ -2,33 +2,46 @@
 
 open Microsoft.Xna.Framework
 open System.Collections.Generic
+open System.Collections.Specialized
 open Lidgren.Network
 
 open HelperFunctions
 open SharedServerClient
 open ECS
 open ECSTypes
-open ECSNetwork
+open ECSNetworkServer
+
+let entityChunks = 128
+let entityChunksByteArraySize =
+    let bytesize = 8
+    assert (entityChunks % bytesize = 0)
+    entityChunks / bytesize
+
+let entityChunkBitSize = 32 //do not change. Chunks are size 32 because we use BitVector32 which is always 32-bits
+let entityMaxCount = entityChunks * entityChunkBitSize //4096 if entityChunks = 128 and entityChunkBitSize = 32
 
 //Types
 
 //Snapshots are what the server sends to a client to update their gamestate
 type Snapshot =
     {
+        entityExistenceDiffBitMask : byte array
+        entityExistenceChunks : BitVector32 list
         entities : EntityManager
         clientAcknowledged : bool
     }
 
 //The server keeps track of the last 32 snapshots it sent to the client
+let snapshotBufferSize = 32
 type Client = NetConnection * Queue<Snapshot>
 
 let DummySnapshot() = 
     {
+        entityExistenceDiffBitMask = Array.zeroCreate entityChunksByteArraySize
+        entityExistenceChunks = List.Empty
         entities = emptyEntityManager
-        //clientAcknowledged isn't required state here
         clientAcknowledged = true
     }
-
 
 let DeltaEntity (entity : Entity) (snapshot : Snapshot) (baseline : EntityManager) =
     let netBuffer = new NetBuffer()
@@ -67,11 +80,13 @@ let DeltaEntity (entity : Entity) (snapshot : Snapshot) (baseline : EntityManage
 
     netBuffer
 
+let DeltaEntityExistenceBitMask
+
 let DeltaSnapshot (snapshot : Snapshot) (baseline : EntityManager) =
     let netBuffer = new NetBuffer()
+    // Write delta compressed entity existence bit string
+
     
-    for entity in baseline.entities do
-        //if entity didn't exist in snapshot,
 
 let SendSnapshotToClients serverEntityManager (clients : Client list) (serverSocket : NetServer) =
 

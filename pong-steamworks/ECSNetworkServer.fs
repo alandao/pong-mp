@@ -1,4 +1,4 @@
-﻿module ECSNetwork
+﻿module ECSNetworkServer
 
 open ECSTypes
 open Lidgren.Network
