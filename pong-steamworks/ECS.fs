@@ -7,7 +7,6 @@ open HelperFunctions
 
 let EntityChunkAndRelativeIndex entity =
     assert (entity < entityLimit)
-
     let rec EntityChunk x =
         if entity - entityChunkSize < 0 then
             0
@@ -15,24 +14,30 @@ let EntityChunkAndRelativeIndex entity =
             1 + EntityChunk (entity - entityChunkSize) 
                
     let entChunk = EntityChunk entity
-    
     (entChunk, entity - (entChunk * entChunk))
             
-
-
-let CreateEntity (entManager : EntityManager) =
+//Finds lowest id to assign to entity, updates chunks, and returns the new entity.
+let CreateEntity (entityManager : EntityManager) =
     let mutable newEntity = entityLimit
     for i = 0 to entityLimit do
-        if not <| entManager.entities.Contains(i) then
-            entManager.entities.Add(i) |> ignore
+        if not <| entityManager.entities.Contains(i) then
+            entityManager.entities.Add(i) |> ignore
             newEntity <- i
-    
-    assert (newEntity <> entityLimit)
+            assert (newEntity <> entityLimit)
 
+    let entChunkAndIndex = EntityChunkAndRelativeIndex newEntity
+    entityManager.entityChunks.[fst entChunkAndIndex].[snd entChunkAndIndex] <- true
+    entityManager.entityChunkUpdateFlag.[fst entChunkAndIndex] <- true
+    
     newEntity
 
-let KillEntity entID (entityManager : EntityManager) =
-    entityManager.entities.Remove entID |> ignore
+let KillEntity entity (entityManager : EntityManager) =
+    entityManager.entities.Remove entity |> ignore
+
+    //marks entity chunks for an update
+    let entChunkAndIndex = EntityChunkAndRelativeIndex entity
+    entityManager.entityChunks.[fst entChunkAndIndex].[snd entChunkAndIndex] <- false
+    entityManager.entityChunkUpdateFlag.[fst entChunkAndIndex] <- true
 
 let ComponentMask entID entityManager =
     let mutable buffer = 0

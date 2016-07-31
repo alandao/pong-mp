@@ -61,6 +61,7 @@
     <Compile Include="ECSNetworkServer.fs" />
     <Compile Include="ECS.fs" />
     <Compile Include="SharedServerClient.fs" />
+    <Compile Include="ServerTypes.fs" />
     <Compile Include="Server.fs" />
     <Compile Include="Client.fs" />
     <Compile Include="PongApp.fs" />

@@ -1,6 +1,7 @@
 ﻿module Server
 
 open Microsoft.Xna.Framework
+open System.Collections
 open System.Collections.Generic
 open System.Collections.Specialized
 open Lidgren.Network
@@ -10,29 +11,7 @@ open SharedServerClient
 open ECS
 open ECSTypes
 open ECSNetworkServer
-
-//Types
-
-//Snapshots are what the server sends to a client to update their gamestate
-type Snapshot =
-    {
-        entityFlagChunkUpdate : byte array //each bit in byte array determines whether 32-bit chunk needs to be sent
-        entityChunks : BitVector32 list //each bit determines whether entity equal to index exists
-        entities : EntityManager
-        clientAcknowledged : bool
-    }
-
-//The server keeps track of the last 32 snapshots it sent to the client
-let snapshotBufferSize = 32
-type Client = NetConnection * Queue<Snapshot>
-
-let DummySnapshot() = 
-    {
-        entityFlagChunkUpdate = Array.zeroCreate entityChunksByteArraySize
-        entityChunks = List.Empty
-        entities = emptyEntityManager
-        clientAcknowledged = true
-    }
+open ServerTypes
 
 let DeltaEntity (entity : Entity) (snapshot : Snapshot) (baseline : EntityManager) =
     let netBuffer = new NetBuffer()
@@ -40,24 +19,24 @@ let DeltaEntity (entity : Entity) (snapshot : Snapshot) (baseline : EntityManage
     netBuffer.Write(entity)
 
     let willSync x = (baseline.network.[entity] &&& (uint32 x)) <> 0u
-    let mutable entityDiffMask : ComponentDiffMask = 0u
+    let mutable componentDiffMask = 0u
 
     if ComponentBit.Appearance |> willSync then
         if (not <| snapshot.entities.appearance.ContainsKey(entity) || 
                 (snapshot.entities.appearance.[entity] <> baseline.appearance.[entity])) then
-            entityDiffMask <- entityDiffMask + uint32 ComponentBit.Appearance
+            componentDiffMask <- componentDiffMask + uint32 ComponentBit.Appearance
     if ComponentBit.Position |> willSync then
         if (not <| snapshot.entities.position.ContainsKey(entity) || 
                 (snapshot.entities.position.[entity] <> baseline.position.[entity])) then
-            entityDiffMask <- entityDiffMask + uint32 ComponentBit.Position 
+            componentDiffMask <- componentDiffMask + uint32 ComponentBit.Position 
     if ComponentBit.Velocity |> willSync then
         if (not <| snapshot.entities.position.ContainsKey(entity) || 
                 (snapshot.entities.velocity.[entity] <> baseline.velocity.[entity])) then
-            entityDiffMask <- entityDiffMask + uint32 ComponentBit.Velocity
+            componentDiffMask <- componentDiffMask + uint32 ComponentBit.Velocity
 
-    netBuffer.Write(entityDiffMask)
+    netBuffer.Write(componentDiffMask)
 
-    let needsUpdate x = (entityDiffMask &&& (uint32 x)) <> 0u
+    let needsUpdate x = (componentDiffMask &&& (uint32 x)) <> 0u
 
     if ComponentBit.Appearance |> needsUpdate then
         let appr = baseline.appearance.[entity]
@@ -71,12 +50,30 @@ let DeltaEntity (entity : Entity) (snapshot : Snapshot) (baseline : EntityManage
 
     netBuffer
 
-let DeltaEntityBitString (snapshot : Snapshot) (baseline : EntityManager) =
-    ()
+let NetBufferEntityChunks (client : Client) (baseline : EntityManager) =
+    let netBuffer = new NetBuffer()
 
-let BaselineCreateEntityBitString (baseline : EntityManager) =
-    
-    for i = 0 to entityMaxCount do
+    //chunks which weren't acked will be resent with latest chunk data
+    let updateFlag = new BitArray(baseline.entityChunkUpdateFlag)
+
+    let snapshotsAfterLatestAcked = 
+        let reversedSnapshots = List.rev client.snapshots
+        Seq.takeWhile (fun x -> x.clientAcknowledged = false) reversedSnapshots
+            
+    for snapshot in snapshotsAfterLatestAcked do
+        updateFlag.Or(updateFlag) |> ignore
+
+    //write chunk update flags
+    for x in updateFlag do
+        netBuffer.Write(x)
+
+    //write chunks
+    let mutable i = 0
+    for x in updateFlag do
+        if x = true then
+            for y in baseline.entityChunks.[i] do
+                netBuffer.Write(y)
+        i <- i + 1
         
 let DeltaSnapshot (snapshot : Snapshot) (baseline : EntityManager) =
     let netBuffer = new NetBuffer()

@@ -13,10 +13,8 @@ let defaultPosition = Vector2(0.f, 0.f)
 type Velocity = Vector2
 let defaultVelocity = Vector2(0.f, 0.f)
 
-
 //determines what components of the entity are synced
 type NetworkComponentMask = uint32
-
 
 
 
@@ -25,9 +23,6 @@ type ComponentBit =
     | Position = 1u
     | Velocity = 2u
     | Appearance = 4u
-
-//determines what components were changed during delta compression
-type ComponentDiffMask = uint32
 
 type Entity = int
 
@@ -44,8 +39,8 @@ type EntityManager =
         appearance: Dictionary<Entity, Appearance>
 
         network : Dictionary<Entity, NetworkComponentMask>
-        entityChunkUpdateFlag : BitArray
-        entityChunks : BitArray array
+        entityChunkUpdateFlag : BitArray //each bit in array determines whether 32-bit chunk needs to be sent
+        entityChunks : BitArray array //each bit determines whether entity with ID equal to index exists
     }
 let emptyEntityManager =
     {
