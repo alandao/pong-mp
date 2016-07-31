@@ -5,18 +5,29 @@ open Microsoft.Xna.Framework
 open ECSTypes
 open HelperFunctions
 
+let EntityChunkAndRelativeIndex entity =
+    assert (entity < entityLimit)
+
+    let rec EntityChunk x =
+        if entity - entityChunkSize < 0 then
+            0
+        else
+            1 + EntityChunk (entity - entityChunkSize) 
+               
+    let entChunk = EntityChunk entity
+    
+    (entChunk, entity - (entChunk * entChunk))
+            
+
 
 let CreateEntity (entManager : EntityManager) =
-    let mutable newEntity = MaxEntityCount
-    for i in 0u .. MaxEntityCount do
+    let mutable newEntity = entityLimit
+    for i = 0 to entityLimit do
         if not <| entManager.entities.Contains(i) then
             entManager.entities.Add(i) |> ignore
             newEntity <- i
     
-    if newEntity = MaxEntityCount then
-        eprintfn "CreateEntity: Error! No more entities left!\n"
-        System.Diagnostics.Debugger.Launch() |> ignore
-        System.Diagnostics.Debugger.Break()
+    assert (newEntity <> entityLimit)
 
     newEntity
 

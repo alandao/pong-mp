@@ -1,9 +1,8 @@
 ﻿module ECSTypes
 
 open Microsoft.Xna.Framework
+open System.Collections
 open System.Collections.Generic
-
-let MaxEntityCount = 4096u
 
 //  Component data
 type Appearance = { texture : string; size : Vector2 }
@@ -30,7 +29,11 @@ type ComponentBit =
 //determines what components were changed during delta compression
 type ComponentDiffMask = uint32
 
-type Entity = uint32
+type Entity = int
+
+let entityChunkTotal = 128
+let entityChunkSize = 32
+let entityLimit = entityChunkTotal * entityChunkSize
 
 type EntityManager =
     {
@@ -40,7 +43,9 @@ type EntityManager =
         velocity : Dictionary<Entity, Velocity>
         appearance: Dictionary<Entity, Appearance>
 
-        network: Dictionary<Entity, NetworkComponentMask>
+        network : Dictionary<Entity, NetworkComponentMask>
+        entityChunkUpdateFlag : BitArray
+        entityChunks : BitArray array
     }
 let emptyEntityManager =
     {
@@ -51,4 +56,6 @@ let emptyEntityManager =
         appearance = new Dictionary<Entity, Appearance>()
 
         network = new Dictionary<Entity, NetworkComponentMask>()
+        entityChunkUpdateFlag = new BitArray(entityChunkTotal)
+        entityChunks = Array.create entityChunkTotal (new BitArray(entityChunkSize))
     }

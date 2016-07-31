@@ -11,22 +11,13 @@ open ECS
 open ECSTypes
 open ECSNetworkServer
 
-let entityChunks = 128
-let entityChunksByteArraySize =
-    let bytesize = 8
-    assert (entityChunks % bytesize = 0)
-    entityChunks / bytesize
-
-let entityChunkBitSize = 32 //do not change. Chunks are size 32 because we use BitVector32 which is always 32-bits
-let entityMaxCount = entityChunks * entityChunkBitSize //4096 if entityChunks = 128 and entityChunkBitSize = 32
-
 //Types
 
 //Snapshots are what the server sends to a client to update their gamestate
 type Snapshot =
     {
-        entityExistenceDiffBitMask : byte array
-        entityExistenceChunks : BitVector32 list
+        entityFlagChunkUpdate : byte array //each bit in byte array determines whether 32-bit chunk needs to be sent
+        entityChunks : BitVector32 list //each bit determines whether entity equal to index exists
         entities : EntityManager
         clientAcknowledged : bool
     }
@@ -37,8 +28,8 @@ type Client = NetConnection * Queue<Snapshot>
 
 let DummySnapshot() = 
     {
-        entityExistenceDiffBitMask = Array.zeroCreate entityChunksByteArraySize
-        entityExistenceChunks = List.Empty
+        entityFlagChunkUpdate = Array.zeroCreate entityChunksByteArraySize
+        entityChunks = List.Empty
         entities = emptyEntityManager
         clientAcknowledged = true
     }
@@ -80,11 +71,19 @@ let DeltaEntity (entity : Entity) (snapshot : Snapshot) (baseline : EntityManage
 
     netBuffer
 
-let DeltaEntityExistenceBitMask
+let DeltaEntityBitString (snapshot : Snapshot) (baseline : EntityManager) =
+    ()
 
+let BaselineCreateEntityBitString (baseline : EntityManager) =
+    
+    for i = 0 to entityMaxCount do
+        
 let DeltaSnapshot (snapshot : Snapshot) (baseline : EntityManager) =
     let netBuffer = new NetBuffer()
+
     // Write delta compressed entity existence bit string
+    for i = 0  to entityMaxCount do
+        
 
     
 
