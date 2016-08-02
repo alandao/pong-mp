@@ -3,7 +3,6 @@
 open Microsoft.Xna.Framework
 open System.Collections
 open System.Collections.Generic
-open System.Collections.Specialized
 open Lidgren.Network
 
 open HelperFunctions
@@ -13,76 +12,51 @@ open ECSTypes
 open ECSNetworkServer
 open ServerTypes
 
-let DeltaEntity (entity : Entity) (snapshot : Snapshot) (baseline : EntityManager) =
-    let netBuffer = new NetBuffer()
-
-    netBuffer.Write(entity)
-
-    let willSync x = (baseline.network.[entity] &&& (uint32 x)) <> 0u
+let ComponentDiffMask (entity : Entity) (previous : EntityManager) (current : EntityManager) =
+    let willSync x = (current.network.[entity] &&& (uint32 x)) <> 0u
     let mutable componentDiffMask = 0u
 
     if ComponentBit.Appearance |> willSync then
-        if (not <| snapshot.entities.appearance.ContainsKey(entity) || 
-                (snapshot.entities.appearance.[entity] <> baseline.appearance.[entity])) then
+        if (not <| previous.appearance.ContainsKey(entity) || 
+                (previous.appearance.[entity] <> current.appearance.[entity])) then
             componentDiffMask <- componentDiffMask + uint32 ComponentBit.Appearance
     if ComponentBit.Position |> willSync then
-        if (not <| snapshot.entities.position.ContainsKey(entity) || 
-                (snapshot.entities.position.[entity] <> baseline.position.[entity])) then
+        if (not <| previous.position.ContainsKey(entity) || 
+                (previous.position.[entity] <> current.position.[entity])) then
             componentDiffMask <- componentDiffMask + uint32 ComponentBit.Position 
     if ComponentBit.Velocity |> willSync then
-        if (not <| snapshot.entities.position.ContainsKey(entity) || 
-                (snapshot.entities.velocity.[entity] <> baseline.velocity.[entity])) then
+        if (not <| previous.position.ContainsKey(entity) || 
+                (previous.velocity.[entity] <> current.velocity.[entity])) then
             componentDiffMask <- componentDiffMask + uint32 ComponentBit.Velocity
 
-    netBuffer.Write(componentDiffMask)
+    componentDiffMask
 
-    let needsUpdate x = (componentDiffMask &&& (uint32 x)) <> 0u
-
-    if ComponentBit.Appearance |> needsUpdate then
-        let appr = baseline.appearance.[entity]
-        netBuffer.Write(NetBufferAppearance appr)
-    if ComponentBit.Position |> needsUpdate then
-        let pos = baseline.position.[entity]
-        netBuffer.Write(NetBufferPosition pos)
-    if ComponentBit.Velocity |> needsUpdate then
-        let vel = baseline.velocity.[entity]
-        netBuffer.Write(NetBufferVelocity vel)
-
-    netBuffer
-
-let NetBufferEntityChunks (client : Client) (baseline : EntityManager) =
-    let netBuffer = new NetBuffer()
-
-    //chunks which weren't acked will be resent with latest chunk data
-    let updateFlag = new BitArray(baseline.entityChunkUpdateFlag)
-
-    let snapshotsAfterLatestAcked = 
-        let reversedSnapshots = List.rev client.snapshots
-        Seq.takeWhile (fun x -> x.clientAcknowledged = false) reversedSnapshots
-            
-    for snapshot in snapshotsAfterLatestAcked do
-        updateFlag.Or(updateFlag) |> ignore
-
-    //write chunk update flags
-    for x in updateFlag do
-        netBuffer.Write(x)
-
-    //write chunks
-    let mutable i = 0
-    for x in updateFlag do
-        if x = true then
-            for y in baseline.entityChunks.[i] do
-                netBuffer.Write(y)
-        i <- i + 1
-        
-let DeltaSnapshot (snapshot : Snapshot) (baseline : EntityManager) =
+let DeltaSnapshot (client : Client) (baseline : EntityManager) =
     let netBuffer = new NetBuffer()
 
     // Write delta compressed entity existence bit string
-    for i = 0  to entityMaxCount do
-        
-
+    netBuffer.Write(NetBufferEntityChunks client baseline)
     
+    //Get latest acked snapshot
+    let latestAckedSnapshot = 
+        match client.snapshots |> List.rev |> List.tryFind (fun x -> x.clientAcknowledged = true) with
+            | Some x -> x
+            | None -> DummySnapshot()
+        
+    // Write delta compressed entities
+    let mutable numberOfEntitiesToSend = 0
+    let tempBuffer = new NetBuffer()
+    for entity in baseline.entities do
+        let componentDiffMask = ComponentDiffMask entity latestAckedSnapshot.entityManager baseline
+        if componentDiffMask <> 0u then
+            numberOfEntitiesToSend <- numberOfEntitiesToSend + 1
+            tempBuffer.Write(componentDiffMask)
+            tempBuffer.Write(NetBufferEntityComponents entity componentDiffMask baseline)
+
+    netBuffer.Write(numberOfEntitiesToSend)
+    netBuffer.Write(tempBuffer)
+    
+    netBuffer
 
 let SendSnapshotToClients serverEntityManager (clients : Client list) (serverSocket : NetServer) =
 

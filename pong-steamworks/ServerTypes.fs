@@ -8,7 +8,7 @@ open ECSTypes
 //Snapshots are what the server sends to a client to update their gamestate
 type Snapshot =
     {
-        entities : EntityManager
+        entityManager : EntityManager
         clientAcknowledged : bool
     }
 
@@ -22,6 +22,6 @@ type Client =
 
 let DummySnapshot() = 
     {
-        entities = emptyEntityManager
+        entityManager = emptyEntityManager
         clientAcknowledged = true
     }
