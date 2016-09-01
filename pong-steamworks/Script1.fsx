@@ -1,5 +1,4 @@
-﻿let updateFlag = new System.Collections.BitArray( [| true; false; true |] )
-updateFlag
-let x = new System.Collections.BitArray([|false; true; false|])
-updateFlag.Or(x)
-updateFlag
+﻿let (x: uint32 array) = Array.zeroCreate 1
+let y = new System.Collections.BitArray(32, true)
+y.CopyTo(x, 0)
+x

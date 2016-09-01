@@ -6,7 +6,6 @@ open Microsoft.Xna.Framework.Input
 open Lidgren.Network
 open System.Collections.Generic
 
-open SharedServerClient
 
 type PongClient () as x =
     inherit Game()

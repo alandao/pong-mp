@@ -1,10 +1,11 @@
 ﻿module ECSTypes
 
 open Microsoft.Xna.Framework
+open Lidgren.Network
 open System.Collections
-open System.Collections.Generic
+open System.Collections.Specialized
 
-//  Component data
+//  COMPONENTS
 type Appearance = { texture : string; size : Vector2 }
 
 type Position = Vector2
@@ -16,7 +17,12 @@ let defaultVelocity = Vector2(0.f, 0.f)
 //determines what components of the entity are synced
 type NetworkComponentMask = uint32
 
+//  END COMPONENTS
 
+//  Server Message types
+type ServerMessage =
+    | Snapshot = 0
+    | Schema = 1
 
 //used for sending schema info over the internet
 type ComponentBit =
@@ -25,32 +31,68 @@ type ComponentBit =
     | Appearance = 4u
 
 type Entity = int
+type ChunkIndex = int
+type ChunkEdited = bool
 
-let entityChunkTotal = 128
-let entityChunkSize = 32
-let entityLimit = entityChunkTotal * entityChunkSize
+//Don't change bit size of chunks. We're using BitVector32 everywhere
+let entityChunkBitSize = 32
 
+let entityChunkIndicies = 128
+let entityLimit = entityChunkIndicies * entityChunkBitSize
+
+//EntityManager will be modified every server loop
 type EntityManager =
     {
-        entities : HashSet<Entity>
-        //will hold all possible components
-        position : Dictionary<Entity, Position>
-        velocity : Dictionary<Entity, Velocity>
-        appearance: Dictionary<Entity, Appearance>
+        position : Generic.Dictionary<Entity, Position>
+        velocity : Generic.Dictionary<Entity, Velocity>
+        appearance : Generic.Dictionary<Entity, Appearance>
+ 
+        entities : (ChunkEdited * BitVector32) array // //first element in tuple determines whether 32-bit chunk needs to be sent
+        //each bit offset determines whether entity with ID equal to chunkIndex*chunkSize + offset exists
 
-        network : Dictionary<Entity, NetworkComponentMask>
-        entityChunkUpdateFlag : BitArray //each bit in array determines whether 32-bit chunk needs to be sent
-        entityChunks : BitArray array //each bit determines whether entity with ID equal to index exists
     }
-let emptyEntityManager =
+let emptyEntityManager () =
     {
-        entities = new HashSet<Entity>()
         //will hold all possible components
-        position = new Dictionary<Entity, Position>()
-        velocity = new Dictionary<Entity, Velocity>()
-        appearance = new Dictionary<Entity, Appearance>()
+        position = new Generic.Dictionary<Entity, Position>()
+        velocity = new Generic.Dictionary<Entity, Velocity>()
+        appearance = new Generic.Dictionary<Entity, Appearance>()
 
-        network = new Dictionary<Entity, NetworkComponentMask>()
-        entityChunkUpdateFlag = new BitArray(entityChunkTotal)
-        entityChunks = Array.create entityChunkTotal (new BitArray(entityChunkSize))
+
+        entities = 
+            let newArray = Array.zeroCreate entityChunkIndicies
+            for i = 0 to newArray.Length - 1 do
+                newArray.[i] <- (false, new BitVector32(0))
+            newArray
     }
+
+//ClientGameState has all the info that a client needs for displaying graphics and sound.
+type ClientGamestate =
+    {
+        position : Generic.Dictionary<Entity, Position>
+        appearance : Generic.Dictionary<Entity, Appearance>
+    }
+//Snapshots are what the server sends to a client to update their gamestate
+type Snapshot =
+    {
+        entityChunks : Generic.Dictionary<int, BitVector32>
+        position : Generic.Dictionary<Entity, Position>
+        appearance : Generic.Dictionary<Entity, Appearance>
+        clientAcknowledged : bool
+    }
+let DummySnapshot() = 
+    {
+        entityChunks = new Generic.Dictionary<Entity, BitVector32>()
+        position = new Generic.Dictionary<Entity, Position>()
+        appearance = new Generic.Dictionary<Entity, Appearance>()
+        clientAcknowledged = true 
+    }
+
+//The server keeps track of the last 32 snapshots it sent to the client
+let snapshotBufferSize = 32
+type Client = 
+    {
+        connection : NetConnection
+        snapshots : Snapshot list
+    }
+
