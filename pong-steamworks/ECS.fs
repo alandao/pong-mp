@@ -71,7 +71,14 @@ let NetBufferSnapshot (snapshot : Snapshot) =
     netBuffer.Write(chunkFour.Data)
 
     netBuffer.Write(bitArrayBuffer)
-    
+
+    for i in 0..entityLimit - 1 do
+        match Dictionary.TryFind i snapshot.position with
+        | Some x -> netBuffer.Write(NetBufferPosition x)
+        | None -> ()
+        match Dictionary.TryFind i snapshot.appearance with
+        | Some x -> netBuffer.Write(NetBufferAppearance x)
+        | None -> ()    
 
 let EntityChunkAndBitOffset entity =
     assert (entity < entityLimit)
