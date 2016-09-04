@@ -47,12 +47,12 @@ let KillEntity entity (entityManager : EntityManager) =
     chunk.[bitOffset] <- false
     entityManager.entities.[chunkIndex] <- (true, chunk)
 
-let DeltaSnapshot (client : Client) (baseline : EntityManager) =
+let DeltaSnapshot clientSnapshots (baseline : EntityManager) =
     // Step 1: Figure out entity chunks to send
     let updateFlag = Array.map fst baseline.entities
 
     let snapshotsAfterLatestAcked =
-        let reversedSnapshots = List.rev client.snapshots
+        let reversedSnapshots = List.rev clientSnapshots
         Seq.takeWhile (fun x -> x.clientAcknowledged = false) reversedSnapshots
 
     for snapshot in snapshotsAfterLatestAcked do
@@ -66,7 +66,7 @@ let DeltaSnapshot (client : Client) (baseline : EntityManager) =
                 
     //Get latest acked snapshot
     let latestAckedSnapshot = 
-        match client.snapshots |> List.rev |> List.tryFind (fun x -> x.clientAcknowledged = true) with
+        match clientSnapshots |> List.rev |> List.tryFind (fun x -> x.clientAcknowledged = true) with
             | Some x -> x
             | None -> DummySnapshot()
         
