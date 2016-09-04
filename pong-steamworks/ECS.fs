@@ -78,7 +78,9 @@ let NetBufferSnapshot (snapshot : Snapshot) =
         | None -> ()
         match Dictionary.TryFind i snapshot.appearance with
         | Some x -> netBuffer.Write(NetBufferAppearance x)
-        | None -> ()    
+        | None -> ()
+
+    netBuffer
 
 let EntityChunkAndBitOffset entity =
     assert (entity < entityLimit)
@@ -209,7 +211,7 @@ let private RunMovement (dt:float) (posComponents:Generic.Dictionary<Entity, Pos
 
     let entities = Generic.List<Entity>(posComponents.Keys)
     for entID in entities do
-        let velocity = DictionaryX.TryFind entID velComponents
+        let velocity = Dictionary.TryFind entID velComponents
 
         if Option.isSome velocity then
             posComponents.[entID] <- advance posComponents.[entID] (Option.get velocity) 
