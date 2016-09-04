@@ -29,48 +29,18 @@ let NetBufferVelocity (vel : Velocity) =
     netBuffer
 
 let NetBufferSnapshot (snapshot : Snapshot) =
-    let netBuffer = new NetBuffer()
-    
-    //128-bit chunkIndicies
-    let chunkIndicies = new BitArray(entityChunkIndicies)
-    for indexChunk in snapshot.entityChunks do
-        chunkIndicies.[indexChunk.Key] <- true
-    
+    let netBuffer = new NetBuffer()    
     let bitArrayBuffer = new NetBuffer()
 
-    //chunk 128-bit bitarray into 4 BitVector32 structs
-    let mutable chunkOne = new BitVector32(0)
-    for i in 0..31 do
-        let actualIndex = i
-        if chunkIndicies.[actualIndex] = true then
-            chunkOne.[i] <- true
-            bitArrayBuffer.Write(snapshot.entityChunks.[actualIndex].Data) 
-    netBuffer.Write(chunkOne.Data)
+    for i in 0..entityChunkIndicies - 1 do
+        match Dictionary.TryFind i snapshot.entityChunks with
+        | Some x ->
+            netBuffer.Write(true)
+            bitArrayBuffer.Write(x.Data)
+        | None ->
+            netBuffer.Write(false)
 
-    let mutable chunkTwo = new BitVector32(0)
-    for i in 0..31 do
-        let actualIndex = i + 32
-        if chunkIndicies.[actualIndex] = true then
-            chunkTwo.[i] <- true
-            bitArrayBuffer.Write(snapshot.entityChunks.[actualIndex].Data) 
-    netBuffer.Write(chunkTwo.Data)
-
-    let mutable chunkThree = new BitVector32(0)
-    for i in 0..31 do
-        let actualIndex = i + 64
-        if chunkIndicies.[actualIndex] = true then
-            chunkThree.[i] <- true
-            bitArrayBuffer.Write(snapshot.entityChunks.[actualIndex].Data)
-    netBuffer.Write(chunkThree.Data)
-
-    let mutable chunkFour = new BitVector32(0)
-    for i in 0..31 do
-        let actualIndex = i + 96
-        if chunkIndicies.[actualIndex] = true then
-            chunkFour.[i] <- true
-            bitArrayBuffer.Write(snapshot.entityChunks.[actualIndex].Data)
-    netBuffer.Write(chunkFour.Data)
-
+    netBuffer.WritePadBits() //need to do this to align bytes after writing bits
     netBuffer.Write(bitArrayBuffer)
 
     for i in 0..entityLimit - 1 do
