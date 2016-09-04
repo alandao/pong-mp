@@ -60,6 +60,7 @@
     <Compile Include="ECSTypes.fs" />
     <Compile Include="ECS.fs" />
     <Compile Include="NetBuffer.fs" />
+    <Compile Include="Server.fs" />
     <Compile Include="Client.fs" />
     <Compile Include="PongApp.fs" />
     <None Include="Script1.fsx" />
