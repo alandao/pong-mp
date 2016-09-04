@@ -6,6 +6,29 @@ open ECS
 open ECSTypes
 open NetBuffer
 
+let RunTick serverState (socket : NetServer) dt =
+    //process messages from clients
+    let mutable message = socket.ReadMessage()
+    while message <> null do
+        match message.MessageType with
+        | NetIncomingMessageType.Data ->
+            let data = message.ReadString()
+            printfn "Server: message '%s' received" data
+        | NetIncomingMessageType.StatusChanged ->
+            //A client connected or disconnected.
+            match message.SenderConnection.Status with
+            | NetConnectionStatus.Connected -> //A player has joined
+                serverState.clients.Add(message.SenderConnection, [])
+                printfn "Server: Client from %s has connected." (message.SenderEndPoint.ToString())
+            | NetConnectionStatus.Disconnected ->
+                serverState.clients.Remove(message.SenderConnection) |> ignore
+                printfn "Server: Client from %s has disconnected." (message.SenderEndPoint.ToString())
+            | _ ->
+                printfn "Server: Client from %s has an unhandled status." (message.SenderEndPoint.ToString())
+        | _ ->
+            eprintfn "Server: Unhandled message with type: %s" (message.MessageType.ToString())
+            ()           
+        message <- socket.ReadMessage()
 
 let StartSocket port =
     let config = new NetPeerConfiguration("pong")
@@ -13,34 +36,3 @@ let StartSocket port =
     let server = new NetServer(config)
     server.Start()
     server
-
-let ProcessClientMessages currentClients (serverSocket:NetServer) =
-    let mutable newClients:NetConnection list = []
-
-    //process messages from clients
-    let mutable message = serverSocket.ReadMessage()
-    while message <> null do
-        match message.MessageType with
-        | NetIncomingMessageType.Data ->
-            let data = message.ReadString()
-            printfn "Server: message '%s' received" data
-        
-        | NetIncomingMessageType.StatusChanged ->
-            //A client connected or disconnected.
-            match message.SenderConnection.Status with
-            | NetConnectionStatus.Connected ->
-                newClients <- message.SenderConnection::newClients
-                printfn "Server: Client from %s has connected." (message.SenderEndPoint.ToString())
-            | NetConnectionStatus.Disconnected ->
-                //remove client from connections list
-                //clients' <- List.filter (fun x -> x <> message.SenderConnection) clients'
-                printfn "Server: Client from %s has disconnected." (message.SenderEndPoint.ToString())
-            | _ ->
-                printfn "Server: Client from %s has an unhandled status." (message.SenderEndPoint.ToString())
-           
-        | NetIncomingMessageType.DebugMessage -> 
-            ()
-        | _ ->
-            eprintfn "Server: Unhandled message with type: %s" (message.MessageType.ToString())
-            ()
-        message <- serverSocket.ReadMessage()
