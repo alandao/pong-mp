@@ -40,7 +40,7 @@ let entityChunkBitSize = 32
 let entityChunkIndicies = 128
 let entityLimit = entityChunkIndicies * entityChunkBitSize
 
-//EntityManager will be modified every server loop
+//properties of EntityManager may be modified each server tick
 type EntityManager =
     {
         position : Generic.Dictionary<Entity, Position>
@@ -72,6 +72,7 @@ type ClientGamestate =
         position : Generic.Dictionary<Entity, Position>
         appearance : Generic.Dictionary<Entity, Appearance>
     }
+
 //Snapshots are what the server sends to a client to update their gamestate
 type Snapshot =
     {
@@ -90,9 +91,8 @@ let DummySnapshot() =
 
 //The server keeps track of the last 32 snapshots it sent to the client
 let snapshotBufferSize = 32
-type Client = 
+type ServerState =
     {
-        connection : NetConnection
-        snapshots : Snapshot list
+        entityManager : EntityManager
+        clients : Generic.Dictionary<NetConnection, Snapshot list>
     }
-
