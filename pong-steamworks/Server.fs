@@ -25,10 +25,32 @@ let RunTick serverState (socket : NetServer) dt =
                 printfn "Server: Client from %s has disconnected." (message.SenderEndPoint.ToString())
             | _ ->
                 printfn "Server: Client from %s has an unhandled status." (message.SenderEndPoint.ToString())
+        | NetIncomingMessageType.DebugMessage ->
+            printfn "%s" (message.ReadString())
         | _ ->
             eprintfn "Server: Unhandled message with type: %s" (message.MessageType.ToString())
             ()           
         message <- socket.ReadMessage()
+
+    //simulate systems
+
+    //send snapshots to clients.
+    for x in serverState.clients.Keys do
+        let snapshots = serverState.clients.[x]
+
+        let deltaSnapshot = DeltaSnapshot snapshots serverState.entityManager
+
+        let sendMsg = socket.CreateMessage()
+        sendMsg.Write(NetBufferSnapshot deltaSnapshot)
+        socket.SendMessage(sendMsg, x, NetDeliveryMethod.Unreliable) |> ignore
+
+        //update snapshot circular buffer with new snapshot.
+        let updatedSnapshots =
+            if List.length snapshots > snapshotBufferSize then
+                snapshots.Tail @ [deltaSnapshot]
+            else
+                snapshots @ [deltaSnapshot]
+        serverState.clients.[x] <- updatedSnapshots
 
 let StartSocket port =
     let config = new NetPeerConfiguration("pong")
