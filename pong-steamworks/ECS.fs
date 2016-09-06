@@ -94,7 +94,7 @@ let DeltaSnapshot clientSnapshots (baseline : EntityManager) =
 //Systems
 
 //updates entities with position and velocity
-let RunMovement (dt:float) (posComponents:Generic.Dictionary<Entity, Position>) velComponents =
+let RunMovement (posComponents:Generic.Dictionary<Entity, Position>) velComponents (dt:float) =
     let advance (pos:Position) (vel:Velocity) = ( pos + (float32 dt * vel) : Position)
 
     let entities = Generic.List<Entity>(posComponents.Keys)
