@@ -51,7 +51,7 @@ type EntityManager =
         //each bit offset determines whether entity with ID equal to chunkIndex*chunkSize + offset exists
 
     }
-let emptyEntityManager () =
+let EmptyEntityManager() =
     {
         //will hold all possible components
         position = new Generic.Dictionary<Entity, Position>()
@@ -95,4 +95,9 @@ type ServerState =
     {
         entityManager : EntityManager
         clients : Generic.Dictionary<NetConnection, Snapshot list>
+    }
+let EmptyServerState() =
+    {
+        entityManager = EmptyEntityManager()
+        clients = new Generic.Dictionary<NetConnection, Snapshot list>()
     }
