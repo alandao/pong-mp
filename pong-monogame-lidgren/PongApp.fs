@@ -19,9 +19,9 @@ type PongClient () as x =
 
     let mutable isHosting = true
     let serverSocket = Server.StartSocket 12345
-    let mutable clientsConnected:NetConnection list = []
-
     let clientSocket = Client.StartSocket "localhost" 12345
+
+    let serverState = ECSTypes.EmptyServerState()
 
     override x.Initialize() =
         spriteBatch <- new SpriteBatch(x.GraphicsDevice)
@@ -36,6 +36,7 @@ type PongClient () as x =
         let dt = gameTime.ElapsedGameTime.TotalSeconds
         if isHosting then
             //run serverside code
+            Server.RunTick serverState serverSocket dt
 
         //run clientside code
 
