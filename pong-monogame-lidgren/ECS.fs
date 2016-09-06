@@ -10,14 +10,16 @@ open HelperFunctions
 
 let EntityChunkAndBitOffset entity =
     assert (entity < entityLimit)
-    let rec EntityChunk x =
-        if entity - entityChunkBitSize < 0 then
-            0
-        else
-            1 + EntityChunk (entity - entityChunkBitSize) 
+    let EntityChunk x =
+        let rec loop acc x = //tail-recursive
+            if x - entityChunkBitSize < 0 then
+                acc
+            else
+                loop (acc + 1) (x - entityChunkBitSize)
+        loop 0 x
                
     let entChunk = EntityChunk entity
-    (entChunk, entity - (entChunk * entChunk))
+    (entChunk, BitVector32.CreateMask(entity - (entChunk * entChunk)))
             
 let EntityExists entity entityManager =
     let (chunkIndex, bitOffset) = EntityChunkAndBitOffset entity
@@ -60,7 +62,7 @@ let DeltaSnapshot clientSnapshots (baseline : EntityManager) =
             updateFlag.[indexChunk.Key] <- true
     
     let snapshotEntityChunks = new Generic.Dictionary<ChunkIndex, BitVector32>()
-    for i = 0 to entityChunkIndicies do
+    for i = 0 to entityChunkIndicies - 1 do
         if updateFlag.[i] = true then
             snapshotEntityChunks.Add(i, (snd baseline.entities.[i]))
                 
@@ -73,7 +75,7 @@ let DeltaSnapshot clientSnapshots (baseline : EntityManager) =
     let snapshotPosition = new Generic.Dictionary<Entity, Position>()
     let snapshotAppearance = new Generic.Dictionary<Entity, Appearance>()
     // Step 2: Add components which have changed.
-    for entity = 0 to entityLimit do
+    for entity = 0 to entityLimit - 1 do
         let (chunkIndex, bitOffset) = EntityChunkAndBitOffset entity
         if (baseline.entities.[chunkIndex] |> snd).[bitOffset] = true then
             if not (latestAckedSnapshot.position.ContainsKey(entity)) ||
@@ -82,7 +84,6 @@ let DeltaSnapshot clientSnapshots (baseline : EntityManager) =
             if not (latestAckedSnapshot.appearance.ContainsKey(entity)) ||
                 baseline.appearance.[entity] <> latestAckedSnapshot.appearance.[entity] then
                 snapshotAppearance.Add(entity, baseline.appearance.[entity])
-
     {
         entityChunks = snapshotEntityChunks
         position = snapshotPosition
