@@ -33,6 +33,7 @@ let RunTick serverState (socket : NetServer) dt =
         message <- socket.ReadMessage()
 
     //simulate systems
+    RunMovement serverState.entityManager.position serverState.entityManager.velocity dt
 
     //send snapshots to clients.
     for x in serverState.clients.Keys do
