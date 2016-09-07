@@ -23,19 +23,19 @@ let EntityChunkAndBitOffset entity =
             
 let EntityExists entity entityManager =
     let (chunkIndex, bitOffset) = EntityChunkAndBitOffset entity
-    (entityManager.entities.[chunkIndex] |> snd).[bitOffset]
+    entityManager.entities.[chunkIndex].[bitOffset]
 
 //Finds lowest id to assign to entity, updates chunks, and returns the new entity.
 //IO int
 let CreateEntity (entityManager : EntityManager) =
     let mutable newEntity = entityLimit
     for i = 0 to entityLimit do
-        let (chunkIndex, bitOffset) = EntityChunkAndBitOffset i 
-        if not <| (entityManager.entities.[chunkIndex] |> snd).[bitOffset] then
-            let mutable chunk = (entityManager.entities.[chunkIndex] |> snd)
-            chunk.[bitOffset] <- true
-            entityManager.entities.[chunkIndex] <- (true, chunk)
-
+        let (chunkIndex, bitOffset) = EntityChunkAndBitOffset i
+        let chunk = entityManager.entities.[chunkIndex]
+        if not <| chunk.[bitOffset] then
+            let mutable newBitVector32 = chunk
+            newBitVector32.[bitOffset] <- true
+            entityManager.entities.[chunkIndex] <- newBitVector32
             newEntity <- i
 
     assert (newEntity <> entityLimit)
@@ -44,40 +44,24 @@ let CreateEntity (entityManager : EntityManager) =
 //IO ()
 let KillEntity entity (entityManager : EntityManager) =
     let (chunkIndex, bitOffset) = EntityChunkAndBitOffset entity
-    let mutable chunk = (entityManager.entities.[chunkIndex] |> snd)
+    let mutable newBitVector32 = entityManager.entities.[chunkIndex]
+    newBitVector32.[bitOffset] <- false
+    entityManager.entities.[chunkIndex] <- newBitVector32
 
-    chunk.[bitOffset] <- false
-    entityManager.entities.[chunkIndex] <- (true, chunk)
-
-let DeltaSnapshot clientSnapshots (baseline : EntityManager) =
+let DeltaDiff prevSnapshot newSnapshot =
     // Step 1: Figure out entity chunks to send
-    let updateFlag = Array.map fst baseline.entities
-
-    let snapshotsAfterLatestAcked =
-        let reversedSnapshots = List.rev clientSnapshots
-        Seq.takeWhile (fun x -> x.clientAcknowledged = false) reversedSnapshots
-
-    for snapshot in snapshotsAfterLatestAcked do
-        for indexChunk in snapshot.entityChunks do
-            updateFlag.[indexChunk.Key] <- true
-    
     let snapshotEntityChunks = new Generic.Dictionary<ChunkIndex, BitVector32>()
     for i = 0 to entityChunkIndicies - 1 do
         if updateFlag.[i] = true then
             snapshotEntityChunks.Add(i, (snd baseline.entities.[i]))
-                
-    //Get latest acked snapshot
-    let latestAckedSnapshot = 
-        match clientSnapshots |> List.rev |> List.tryFind (fun x -> x.clientAcknowledged = true) with
-            | Some x -> x
-            | None -> DummySnapshot()
+   
         
     let snapshotPosition = new Generic.Dictionary<Entity, Position>()
     let snapshotAppearance = new Generic.Dictionary<Entity, Appearance>()
     // Step 2: Add components which have changed.
     for entity = 0 to entityLimit - 1 do
         let (chunkIndex, bitOffset) = EntityChunkAndBitOffset entity
-        if (baseline.entities.[chunkIndex] |> snd).[bitOffset] = true then
+        if baseline.entities.[chunkIndex].[bitOffset] = true then
             if not (latestAckedSnapshot.position.ContainsKey(entity)) ||
                 baseline.position.[entity] <> latestAckedSnapshot.position.[entity] then
                 snapshotPosition.Add(entity, baseline.position.[entity])
