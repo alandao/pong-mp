@@ -37,9 +37,13 @@ let RunTick serverState (socket : NetServer) dt =
 
     //send snapshots to clients.
     for x in serverState.clients.Keys do
-        let snapshots = serverState.clients.[x]
+        let latestAckedSnapshot =
+            let snapshots = serverState.clients.[x]
+            match snapshots |> List.rev |> List.tryFind (fun x -> x.clientAcknowledged = true) with
+                | Some x -> x
+                | None -> DummySnapshot()
 
-        let deltaSnapshot = DeltaSnapshot snapshots serverState.entityManager
+        let deltaSnapshot = DeltaSnapshot latestAckedSnapshot serverState.entityManager
 
         let sendMsg = socket.CreateMessage()
         sendMsg.Write(NetBufferSnapshot deltaSnapshot)
