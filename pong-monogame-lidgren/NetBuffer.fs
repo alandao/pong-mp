@@ -41,7 +41,8 @@ let NetBufferSnapshot (snapshot : Snapshot) =
             netBuffer.Write(false)
 
     netBuffer.WritePadBits() //need to do this to align bytes after writing bits
-    netBuffer.Write(bitArrayBuffer)
+    if bitArrayBuffer.Data <> null then //maybe no elements were created or destroyed.
+        netBuffer.Write(bitArrayBuffer)
 
     for i in 0..entityLimit - 1 do
         match Dictionary.TryFind i snapshot.position with
