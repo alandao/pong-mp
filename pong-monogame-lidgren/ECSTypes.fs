@@ -2,7 +2,6 @@
 
 open Microsoft.Xna.Framework
 open Lidgren.Network
-open System.Collections
 open System.Collections.Specialized
 
 //  COMPONENTS
@@ -29,15 +28,15 @@ let entityLimit = entityChunkIndicies * entityChunkBitSize
 type EntityManager =
     {
         //each bit offset determines whether entity with ID equal to chunkIndex*chunkSize + offset exists 
-        entities : Generic.Dictionary<ChunkIndex, BitVector32>
+        entities : Map<ChunkIndex, BitVector32>
 
-        position : Generic.Dictionary<Entity, Position>
-        velocity : Generic.Dictionary<Entity, Velocity>
-        appearance : Generic.Dictionary<Entity, Appearance>
+        position : Map<Entity, Position>
+        velocity : Map<Entity, Velocity>
+        appearance : Map<Entity, Appearance>
     }
 let EmptyEntityManager() =
     {
-        entities = 
+        entities = List.fold (fun map i -> Map.add i (BitVector32))
             let newDictionary = new Generic.Dictionary<ChunkIndex, BitVector32>()
             for i = 0 to entityChunkIndicies - 1 do
                 newDictionary.Add(i, new BitVector32(0))
