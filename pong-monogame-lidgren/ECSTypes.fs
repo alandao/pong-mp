@@ -36,16 +36,12 @@ type EntityManager =
     }
 let EmptyEntityManager() =
     {
-        entities = List.fold (fun map i -> Map.add i (BitVector32))
-            let newDictionary = new Generic.Dictionary<ChunkIndex, BitVector32>()
-            for i = 0 to entityChunkIndicies - 1 do
-                newDictionary.Add(i, new BitVector32(0))
-            newDictionary
+        entities = List.fold (fun map i -> Map.add i (new BitVector32()) map) Map.empty [0 .. 127]
              
         //will hold all possible components
-        position = new Generic.Dictionary<Entity, Position>()
-        velocity = new Generic.Dictionary<Entity, Velocity>()
-        appearance = new Generic.Dictionary<Entity, Appearance>()
+        position = Map.empty
+        velocity = Map.empty
+        appearance = Map.empty
     }
 
 //GameState has all the info that a client needs
